@@ -43,7 +43,7 @@ export function RegisterPage() {
 
   return (
     <div className="flex min-h-screen bg-background text-on-background items-center justify-center p-margin">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-[28rem]">
         <div className="bg-surface-container border border-outline-variant rounded-xl p-lg shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col gap-margin">
           <div className="flex flex-col items-center gap-base text-center">
             <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center">

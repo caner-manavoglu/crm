@@ -11,6 +11,10 @@ import { MyComplaintsPage } from '@/pages/customer/MyComplaintsPage';
 import { ComplaintDetailPage } from '@/pages/customer/ComplaintDetailPage';
 import { StaffLayout } from '@/pages/staff/StaffLayout';
 import { StaffDashboardPage } from '@/pages/staff/StaffDashboardPage';
+import { AdminLayout } from '@/pages/admin/AdminLayout';
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
+import { AllComplaintsPage } from '@/pages/admin/complaints/AllComplaintsPage';
+import { ComplaintPoolPage } from '@/pages/admin/complaints/ComplaintPoolPage';
 import { useAuthStore } from '@/stores/auth.store';
 
 function RoleHomeRedirect() {
@@ -20,19 +24,6 @@ function RoleHomeRedirect() {
   if (user.role === 'customer') return <Navigate to={ROUTES.CUSTOMER.SUBMIT} replace />;
   if (user.role === 'staff') return <Navigate to={ROUTES.STAFF.DASHBOARD} replace />;
   return <Navigate to={ROUTES.ADMIN.DASHBOARD} replace />;
-}
-
-function AdminPlaceholderPage() {
-  return (
-    <div className="min-h-screen bg-[#10131A] p-8 text-[#E1E2EC]">
-      <div className="mx-auto max-w-2xl rounded-2xl border border-[#424754] bg-[#1D2027] p-8">
-        <h1 className="text-2xl font-semibold">Admin Paneli</h1>
-        <p className="mt-2 text-sm text-[#C2C6D6]">
-          Admin ekranları bir sonraki adımda stitch tasarımına göre entegre edilecek.
-        </p>
-      </div>
-    </div>
-  );
 }
 
 export default function App() {
@@ -60,8 +51,17 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path={ROUTES.ADMIN.HOME} element={<AdminPlaceholderPage />} />
-            <Route path={ROUTES.ADMIN.DASHBOARD} element={<AdminPlaceholderPage />} />
+            <Route path={ROUTES.ADMIN.HOME} element={<AdminLayout />}>
+              <Route index element={<Navigate to={ROUTES.ADMIN.DASHBOARD} replace />} />
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="complaints" element={<AllComplaintsPage />} />
+              <Route path="complaints/pool" element={<ComplaintPoolPage />} />
+              <Route path="staff" element={<AdminDashboardPage />} />
+              <Route path="departments" element={<AdminDashboardPage />} />
+              <Route path="categories" element={<AdminDashboardPage />} />
+              <Route path="cities" element={<AdminDashboardPage />} />
+              <Route path="analytics" element={<AdminDashboardPage />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

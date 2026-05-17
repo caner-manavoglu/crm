@@ -59,7 +59,7 @@ export function LoginPage() {
             <h2 className="font-headline-xl text-headline-xl text-on-background mb-sm">
               Müşteri şikayetlerini<br />akıllıca yönetin
             </h2>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-[24rem]">
               Otomatik atama motoru, gerçek zamanlı bildirimler ve kapsamlı raporlama ile müşteri memnuniyetini artırın.
             </p>
           </div>
@@ -79,7 +79,7 @@ export function LoginPage() {
       </div>
 
       <div className="flex w-full lg:w-1/2 items-center justify-center p-margin">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-[28rem]">
           <div className="bg-surface-container border border-outline-variant rounded-xl p-lg shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col gap-margin">
             <div className="flex flex-col items-center gap-base text-center">
               <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center lg:hidden">

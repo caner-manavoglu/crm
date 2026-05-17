@@ -55,7 +55,7 @@ export class AssignmentsService {
       .innerJoin('sa.staff', 'u')
       .where('u.department_id = :departmentId', { departmentId })
       .andWhere('u.city_id = :cityId', { cityId })
-      .andWhere('u.is_active = true')
+      .andWhere('u.isActive = true')
       .andWhere('sa.is_available = true')
       .andWhere('sa.current_load < sa.max_capacity')
       .orderBy('sa.current_load', 'ASC')
