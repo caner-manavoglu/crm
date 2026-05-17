@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Submit a Complaint - CareFlow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-secondary-container": "#5b3800", "inverse-surface": "#e1e2ec", "on-surface": "#e1e2ec", "surface-variant": "#32353c", "on-background": "#e1e2ec", "on-surface-variant": "#c2c6d6", "primary-container": "#4d8eff", outline: "#8c909f", "on-secondary": "#472a00", "on-tertiary": "#502400", "tertiary-container": "#df7412", "on-error": "#690005", "surface-container-low": "#191b23", "primary-fixed-dim": "#adc6ff", "on-tertiary-fixed-variant": "#723600", tertiary: "#ffb786", "on-error-container": "#ffdad6", "error-container": "#93000a", "on-tertiary-container": "#461f00", "on-primary-fixed-variant": "#004395", error: "#ffb4ab", "on-primary-container": "#00285d", "tertiary-fixed-dim": "#ffb786", "surface-container": "#1d2027", "secondary-fixed": "#ffddb8", background: "#10131a", "inverse-primary": "#005ac2", "surface-tint": "#adc6ff", secondary: "#ffb95f", "on-secondary-fixed-variant": "#653e00", "outline-variant": "#424754", "on-secondary-fixed": "#2a1700", "secondary-fixed-dim": "#ffb95f", "inverse-on-surface": "#2e3038", "surface-bright": "#363941", surface: "#10131a", "primary-fixed": "#d8e2ff", "on-tertiary-fixed": "#311400", "surface-container-highest": "#32353c", "surface-container-high": "#272a31", primary: "#adc6ff", "surface-dim": "#10131a", "on-primary-fixed": "#001a42", "tertiary-fixed": "#ffdcc6", "surface-container-lowest": "#0b0e15", "secondary-container": "#ee9800", "on-primary": "#002e6a"}, borderRadius: {DEFAULT: "0.5rem", lg: "1rem", xl: "1.5rem", full: "9999px"}, spacing: {xl: "64px", md: "24px", xs: "4px", sm: "12px", lg: "40px", gutter: "24px", base: "8px", margin: "32px"}, fontFamily: {"body-lg": ["Inter"], "headline-xl": ["Inter"], "headline-lg-mobile": ["Inter"], "body-md": ["Inter"], "headline-md": ["Inter"], "body-sm": ["Inter"], "label-md": ["Inter"], "headline-lg": ["Inter"], headline: ["Inter"], display: ["Inter"], body: ["Inter"], label: ["Inter"]}, fontSize: {"body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "headline-xl": ["36px", {lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700"}], "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["20px", {lineHeight: "28px", fontWeight: "600"}], "body-sm": ["14px", {lineHeight: "20px", fontWeight: "400"}], "label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600"}], "headline-lg": ["28px", {lineHeight: "36px", letterSpacing: "-0.01em", fontWeight: "600"}]}}}};</script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .input-base {
+                @apply bg-surface-dim border border-outline-variant rounded-lg px-sm py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all w-full;
+            }
+            .label-base {
+                @apply font-label-md text-label-md text-on-surface-variant mb-xs block;
+            }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased">
+<!-- Transactional Header (Suppressed Navigation Shell) -->
+<header class="w-full h-16 flex items-center px-margin border-b border-outline-variant bg-surface-dim sticky top-0 z-40">
+<div class="font-headline-md text-headline-md font-bold text-primary tracking-tight">CareFlow</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex justify-center py-xl px-margin sm:px-gutter">
+<div class="w-full max-w-3xl flex flex-col gap-lg">
+<!-- Page Header -->
+<div class="flex flex-col gap-xs">
+<h1 class="font-headline-xl text-headline-xl text-on-surface">Submit a Complaint</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Please provide detailed information below. Your concern is important to us, and we will route it to the appropriate resolution team.</p>
+</div>
+<!-- Form Container -->
+<form class="bg-surface-container border border-outline-variant rounded-xl p-lg flex flex-col gap-lg shadow-sm">
+<!-- Section: Personal Details -->
+<section class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-outline-variant pb-xs">1. Personal Information</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md mt-xs">
+<div>
+<label class="label-base" for="fullName">Full Name</label>
+<input class="input-base" id="fullName" placeholder="Jane Doe" required="" type="text"/>
+</div>
+<div>
+<label class="label-base" for="email">Email Address</label>
+<input class="input-base" id="email" placeholder="jane@example.com" required="" type="email"/>
+</div>
+<div class="md:col-span-2">
+<label class="label-base" for="phone">Phone Number (Optional)</label>
+<input class="input-base" id="phone" placeholder="+1 (555) 000-0000" type="tel"/>
+</div>
+</div>
+</section>
+<!-- Section: Complaint Details -->
+<section class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-outline-variant pb-xs">2. Complaint Details</h2>
+<div class="flex flex-col gap-md mt-xs">
+<div>
+<label class="label-base" for="category">Category</label>
+<select class="input-base appearance-none cursor-pointer" id="category">
+<option disabled="" selected="" value="">Select a category...</option>
+<option value="service">Service Quality</option>
+<option value="billing">Billing &amp; Invoicing</option>
+<option value="technical">Technical Issue</option>
+<option value="other">Other</option>
+</select>
+</div>
+<div>
+<label class="label-base" for="subject">Subject</label>
+<input class="input-base" id="subject" placeholder="Brief summary of the issue" required="" type="text"/>
+</div>
+<div>
+<label class="label-base" for="description">Detailed Description</label>
+<textarea class="input-base resize-y" id="description" placeholder="Please provide as much detail as possible..." required="" rows="5"></textarea>
+</div>
+</div>
+</section>
+<!-- Section: Attachments -->
+<section class="flex flex-col gap-md">
+<div class="flex justify-between items-end border-b border-outline-variant pb-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface">3. Supporting Documents</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Optional</span>
+</div>
+<div class="border-2 border-dashed border-outline-variant rounded-xl p-lg mt-xs flex flex-col items-center justify-center gap-sm bg-surface-dim hover:border-primary hover:bg-surface-container-highest transition-all cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-primary-container group-hover:text-on-primary-container text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[24px]">upload_file</span>
+</div>
+<div class="text-center">
+<p class="font-label-md text-label-md text-primary group-hover:text-primary-fixed-dim transition-colors">Click to upload or drag files here</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">JPG, PNG, PDF up to 10MB</p>
+</div>
+</div>
+</section>
+<!-- Actions -->
+<div class="pt-sm flex justify-end gap-md">
+<button class="px-md py-sm rounded-lg font-label-md text-label-md text-primary border border-outline-variant hover:bg-surface-container-highest transition-colors" type="button">
+                        Clear Form
+                    </button>
+<button class="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-fixed-dim hover:shadow-md transition-all active:scale-[0.98]" type="submit">
+                        Submit Complaint
+                    </button>
+</div>
+</form>
+</div>
+</main>
+</body></html>
