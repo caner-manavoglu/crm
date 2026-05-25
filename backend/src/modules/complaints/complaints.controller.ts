@@ -40,24 +40,23 @@ export class ComplaintsController {
     return this.complaintsService.findByCustomer(user.id, query);
   }
 
-  @Public()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.complaintsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.complaintsService.findOneForUser(id, user);
   }
 
-  @Public()
   @Get(':id/history')
-  getHistory(@Param('id') id: string) {
-    return this.complaintsService.getHistory(id);
+  getHistory(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.complaintsService.getHistoryForUser(id, user);
   }
 
+  @Roles(UserRole.CUSTOMER, UserRole.STAFF, UserRole.ADMIN)
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateComplaintStatusDto,
     @CurrentUser() user: User,
   ) {
-    return this.complaintsService.updateStatus(id, dto, user.id, user.role);
+    return this.complaintsService.updateStatus(id, dto, user);
   }
 }

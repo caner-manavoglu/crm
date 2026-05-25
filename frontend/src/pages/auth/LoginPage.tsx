@@ -52,8 +52,8 @@ export function LoginPage() {
                 <span className="material-symbols-outlined text-on-primary-container" style={{ fontSize: '28px' }}>support_agent</span>
               </div>
               <div>
-                <h1 className="font-headline-lg text-headline-lg text-on-background font-bold">CareFlow</h1>
-                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Enterprise CRM</p>
+                <h1 className="font-headline-lg text-headline-lg text-on-background font-bold">CRM</h1>
+                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Müşteri Yönetimi</p>
               </div>
             </div>
             <h2 className="font-headline-xl text-headline-xl text-on-background mb-sm">
@@ -87,7 +87,7 @@ export function LoginPage() {
               </div>
               <div>
                 <h2 className="font-headline-md text-headline-md text-on-background">Giriş Yap</h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">CareFlow hesabınıza erişin</p>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">CRM hesabınıza erişin</p>
               </div>
             </div>
 

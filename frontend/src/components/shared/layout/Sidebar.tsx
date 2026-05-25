@@ -35,7 +35,7 @@ export function Sidebar({ title, items }: SidebarProps) {
         </div>
         <div>
           <span className="font-body-md text-body-md font-semibold text-primary">{title}</span>
-          <p className="font-label-md text-label-md text-on-surface-variant uppercase">Enterprise CRM</p>
+          <p className="font-label-md text-label-md text-on-surface-variant uppercase">Müşteri Yönetimi</p>
         </div>
       </div>
 

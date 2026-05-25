@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
+import { ROUTES } from '@/router/routes';
 import { cn } from '@/lib/utils';
 
 interface TopbarProps {
@@ -10,10 +12,17 @@ interface TopbarProps {
 
 export function Topbar({ title, subtitle }: TopbarProps) {
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
   const { unreadCount, notifications, markAllRead } = useNotificationsStore();
   const [showNotifs, setShowNotifs] = useState(false);
 
   const initials = user ? `${user.name[0]}${user.surname[0]}`.toUpperCase() : 'U';
+
+  const handleLogout = () => {
+    logout();
+    navigate(ROUTES.LOGIN, { replace: true });
+  };
 
   return (
     <header className="flex items-center justify-between px-margin w-full bg-surface-dim border-b border-outline-variant h-16 sticky top-0 z-40">
@@ -68,12 +77,8 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           )}
         </div>
 
-        <button className="p-xs hover:bg-surface-container-highest rounded-full transition-colors cursor-pointer active:scale-95 duration-150">
-          <span className="material-symbols-outlined">help_outline</span>
-        </button>
-
-        <div className="h-8 w-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-bold text-sm border border-outline-variant ml-sm">
-          {initials}
+        <div className="h-8 w-8 rounded-full bg-primary-container/20 grid place-items-center text-primary font-bold text-sm leading-none border border-outline-variant ml-sm">
+          <span className="translate-y-[0.5px]">{initials}</span>
         </div>
 
         {user && (
@@ -84,6 +89,14 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             <span className="font-label-md text-label-md text-on-surface-variant capitalize">{user.role}</span>
           </div>
         )}
+
+        <button
+          onClick={handleLogout}
+          title="Çıkış Yap"
+          className="p-xs ml-sm hover:bg-surface-container-highest hover:text-error rounded-full transition-colors cursor-pointer active:scale-95 duration-150"
+        >
+          <span className="material-symbols-outlined">logout</span>
+        </button>
       </div>
     </header>
   );

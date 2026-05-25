@@ -30,7 +30,11 @@ api.interceptors.response.use(
           { refreshToken },
         );
 
-        useAuthStore.getState().setTokens(data.data.accessToken, refreshToken);
+        // Backend yeni bir refresh token da döndürür; rotasyonu uygula (eskisini tutma).
+        useAuthStore.getState().setTokens(
+          data.data.accessToken,
+          data.data.refreshToken ?? refreshToken,
+        );
         original.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return api(original);
       } catch {

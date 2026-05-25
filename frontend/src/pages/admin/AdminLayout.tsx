@@ -20,9 +20,9 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar title="CareFlow" items={navItems} />
+      <Sidebar title="CRM" items={navItems} />
       <div className="flex-1 flex flex-col min-w-0 md:ml-[280px]">
-        <Topbar title="Admin Paneli" subtitle="CareFlow yönetim merkezi" />
+        <Topbar title="Admin Paneli" subtitle="CRM yönetim merkezi" />
         <main className="flex-1 overflow-auto p-md">
           <Outlet />
         </main>

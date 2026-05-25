@@ -19,6 +19,7 @@ export interface City {
   id: string;
   name: string;
   code: string;
+  isActive: boolean;
 }
 
 export interface Department {

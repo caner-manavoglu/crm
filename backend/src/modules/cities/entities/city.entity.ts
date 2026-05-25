@@ -10,4 +10,7 @@ export class City {
 
   @Column({ unique: true })
   code: string;
+
+  @Column({ default: true })
+  isActive: boolean;
 }

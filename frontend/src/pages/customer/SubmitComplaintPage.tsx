@@ -103,7 +103,7 @@ export function SubmitComplaintPage() {
                 />
               </div>
             </div>
-            <div className="mt-sm max-w-sm flex flex-col gap-xs">
+            <div className="mt-sm max-w-[24rem] flex flex-col gap-xs">
               <label className={labelClass}>Şehir</label>
               <select {...register('cityId')} className={selectClass}>
                 <option value="">Seçin...</option>

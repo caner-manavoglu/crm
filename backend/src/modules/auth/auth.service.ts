@@ -9,7 +9,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
-import { StaffAvailability } from '../staff-availability/entities/staff-availability.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -18,7 +17,6 @@ import { UserRole } from '../../common/enums/user-role.enum';
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
-    @InjectRepository(StaffAvailability) private availabilityRepo: Repository<StaffAvailability>,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -27,13 +25,9 @@ export class AuthService {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Bu e-posta adresi zaten kullanılıyor.');
 
-    const user = this.userRepo.create(dto);
+    // Public kayıt her zaman müşteri rolüyle oluşturulur (yetki yükseltmesini engeller).
+    const user = this.userRepo.create({ ...dto, role: UserRole.CUSTOMER });
     await this.userRepo.save(user);
-
-    if (user.role === UserRole.STAFF) {
-      const availability = this.availabilityRepo.create({ staffId: user.id });
-      await this.availabilityRepo.save(availability);
-    }
 
     return this.generateTokens(user);
   }

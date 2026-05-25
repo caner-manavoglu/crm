@@ -116,7 +116,7 @@ export function AllComplaintsPage() {
 
       {assignModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md">
-          <div className="bg-surface-container border border-outline-variant rounded-xl p-md w-full max-w-sm shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-md w-full max-w-[24rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between mb-md">
               <h3 className="font-headline-md text-headline-md text-on-background">Personel Ata</h3>
               <button

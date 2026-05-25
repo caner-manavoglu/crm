@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
-import { UserRole } from '../../../common/enums/user-role.enum';
+import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
+// Public kayıt yalnızca müşteri hesabı oluşturur. Rol/departman gibi yetki
+// alanları kabul edilmez; personel/admin yalnızca admin korumalı POST /users ile açılır.
 export class RegisterDto {
   @ApiProperty()
   @IsEmail()
@@ -19,16 +20,6 @@ export class RegisterDto {
   @ApiProperty()
   @IsString()
   surname: string;
-
-  @ApiPropertyOptional({ enum: UserRole })
-  @IsEnum(UserRole)
-  @IsOptional()
-  role?: UserRole;
-
-  @ApiPropertyOptional()
-  @IsUUID()
-  @IsOptional()
-  departmentId?: string;
 
   @ApiPropertyOptional()
   @IsUUID()

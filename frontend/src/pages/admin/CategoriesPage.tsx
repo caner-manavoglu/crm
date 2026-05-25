@@ -1,0 +1,236 @@
+import { useState } from 'react';
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+} from '@/hooks/queries/useCategories';
+import { useDepartments } from '@/hooks/queries/useDepartments';
+import { getApiErrorMessage } from '@/lib/api-error';
+import type { Category, Department } from '@/types/user.types';
+
+const inputClass = 'w-full bg-surface-dim border border-outline-variant rounded-lg px-sm py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors';
+const selectClass = inputClass;
+
+export function CategoriesPage() {
+  const [deptFilter, setDeptFilter] = useState('');
+  const { data: categories = [], isLoading } = useCategories(deptFilter || undefined);
+  const { data: departments = [] } = useDepartments();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
+  const [name, setName] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const [description, setDescription] = useState('');
+  const [createError, setCreateError] = useState('');
+
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDepartmentId, setEditDepartmentId] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editError, setEditError] = useState('');
+
+  const list = categories as Category[];
+  const depts = departments as Department[];
+
+  const handleCreate = () => {
+    if (!name.trim() || !departmentId) {
+      setCreateError('Kategori adı ve departman zorunludur.');
+      return;
+    }
+
+    setCreateError('');
+    createCategory.mutate(
+      { name: name.trim(), departmentId, description: description.trim() || undefined },
+      {
+        onSuccess: () => {
+          setName('');
+          setDescription('');
+        },
+        onError: (error) => {
+          setCreateError(getApiErrorMessage(error, 'Kategori oluşturulamadı.'));
+        },
+      },
+    );
+  };
+
+  const openEditModal = (category: Category) => {
+    setEditError('');
+    setEditing(category);
+    setEditName(category.name);
+    setEditDepartmentId(category.departmentId);
+    setEditDescription(category.description ?? '');
+  };
+
+  const closeEditModal = () => {
+    setEditing(null);
+    setEditError('');
+    setEditName('');
+    setEditDepartmentId('');
+    setEditDescription('');
+  };
+
+  const handleUpdate = () => {
+    if (!editing) return;
+
+    if (!editName.trim() || !editDepartmentId) {
+      setEditError('Kategori adı ve departman zorunludur.');
+      return;
+    }
+
+    setEditError('');
+    updateCategory.mutate(
+      {
+        id: editing.id,
+        data: {
+          name: editName.trim(),
+          departmentId: editDepartmentId,
+          description: editDescription.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: closeEditModal,
+        onError: (error) => {
+          setEditError(getApiErrorMessage(error, 'Kategori güncellenemedi.'));
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-md flex items-center justify-between flex-wrap gap-sm">
+        <div>
+          <h2 className="font-headline-lg text-headline-lg text-on-background font-bold">Kategoriler</h2>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{list.length} kategori</p>
+        </div>
+        <select className={`${selectClass} max-w-[220px]`} value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+          <option value="">Tüm Departmanlar</option>
+          {depts.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="bg-surface-container border border-outline-variant rounded-xl p-md mb-md">
+        <h3 className="font-label-md text-label-md text-on-surface-variant uppercase mb-sm flex items-center gap-xs">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+          Yeni Kategori
+        </h3>
+        <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-sm md:flex-row">
+            <input className={inputClass} placeholder="Kategori adı" value={name} onChange={(e) => setName(e.target.value)} />
+            <select className={selectClass} value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+              <option value="">Departman seçin</option>
+              {depts.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-sm md:flex-row">
+            <input className={inputClass} placeholder="Açıklama (opsiyonel)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <button
+              onClick={handleCreate}
+              disabled={!name.trim() || !departmentId || createCategory.isPending}
+              className="shrink-0 flex items-center justify-center gap-xs bg-primary text-on-primary rounded-xl px-md py-xs font-body-sm text-body-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+              Ekle
+            </button>
+          </div>
+        </div>
+        {createError && <p className="font-label-md text-label-md text-error mt-sm">{createError}</p>}
+      </div>
+
+      {isLoading ? (
+        <div className="flex h-48 items-center justify-center gap-sm text-on-surface-variant">
+          <span className="material-symbols-outlined animate-spin" style={{ fontSize: '20px' }}>progress_activity</span>
+          <span className="font-body-sm text-body-sm">Yükleniyor...</span>
+        </div>
+      ) : list.length === 0 ? (
+        <div className="bg-surface-container border border-outline-variant rounded-xl flex flex-col items-center justify-center py-xl gap-sm">
+          <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '48px' }}>category</span>
+          <p className="font-body-md text-body-md text-on-surface-variant">Kategori bulunamadı.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-sm md:grid-cols-2">
+          {list.map((c) => (
+            <div key={c.id} className="bg-surface-container border border-outline-variant rounded-xl p-md flex items-start justify-between gap-sm">
+              <div className="min-w-0">
+                <div className="flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: '18px' }}>category</span>
+                  <p className="font-body-md text-body-md text-on-surface font-medium truncate">{c.name}</p>
+                </div>
+                <p className="font-label-md text-label-md text-on-surface-variant mt-xs">{c.department?.name}</p>
+                {c.description && (
+                  <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{c.description}</p>
+                )}
+              </div>
+              <div className="flex gap-xs shrink-0">
+                <button
+                  onClick={() => openEditModal(c)}
+                  className="text-on-surface-variant hover:text-primary transition-colors"
+                  title="Düzenle"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`"${c.name}" pasife alınsın mı?`)) {
+                      deleteCategory.mutate(c.id, {
+                        onError: (error) => {
+                          alert(getApiErrorMessage(error, 'Kategori pasife alınamadı.'));
+                        },
+                      });
+                    }
+                  }}
+                  className="text-on-surface-variant hover:text-error transition-colors"
+                  title="Pasife al"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md">
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-md w-full max-w-[28rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between mb-md">
+              <h3 className="font-headline-md text-headline-md text-on-background">Kategori Düzenle</h3>
+              <button onClick={closeEditModal} className="text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-sm">
+              <input className={inputClass} placeholder="Kategori adı" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <select className={selectClass} value={editDepartmentId} onChange={(e) => setEditDepartmentId(e.target.value)}>
+                <option value="">Departman seçin</option>
+                {depts.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              <input className={inputClass} placeholder="Açıklama (opsiyonel)" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              {editError && <p className="font-label-md text-label-md text-error">{editError}</p>}
+              <div className="flex gap-sm mt-xs">
+                <button onClick={closeEditModal} className="flex-1 border border-outline-variant rounded-xl py-xs font-body-sm text-body-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                  İptal
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={updateCategory.isPending}
+                  className="flex-1 bg-primary text-on-primary rounded-xl py-xs font-body-sm text-body-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {updateCategory.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

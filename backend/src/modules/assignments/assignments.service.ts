@@ -14,6 +14,7 @@ import { AssignmentType } from '../../common/enums/assignment-type.enum';
 import { ComplaintStatus } from '../../common/enums/complaint-status.enum';
 import { CreateComplaintDto } from '../complaints/dto/create-complaint.dto';
 import { TransferAssignmentDto } from './dto/transfer-assignment.dto';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class AssignmentsService {
@@ -24,6 +25,7 @@ export class AssignmentsService {
     @InjectRepository(StaffAvailability) private availRepo: Repository<StaffAvailability>,
     @InjectRepository(Category) private categoryRepo: Repository<Category>,
     private dataSource: DataSource,
+    private notifications: NotificationsGateway,
   ) {}
 
   async handleNewComplaint(complaint: Complaint, dto: CreateComplaintDto): Promise<Assignment | null> {
@@ -68,7 +70,7 @@ export class AssignmentsService {
     type: AssignmentType,
     assignedById?: string,
   ): Promise<Assignment> {
-    return this.dataSource.transaction(async (manager) => {
+    const { saved, complaintTitle } = await this.dataSource.transaction(async (manager) => {
       // Lock staff_availability row to prevent race conditions
       const avail = await manager
         .createQueryBuilder(StaffAvailability, 'sa')
@@ -104,8 +106,20 @@ export class AssignmentsService {
         }),
       );
 
-      return saved;
+      return { saved, complaintTitle: complaint?.title };
     });
+
+    // Atanan personele ve adminlere gerçek zamanlı bildirim (transaction dışında).
+    this.notifications.notifyUser(staffId, 'complaint:assigned', {
+      complaintId,
+      title: complaintTitle,
+    });
+    this.notifications.notifyAdmins('notification:new', {
+      type: 'assignment',
+      message: `Şikayet personele atandı: ${complaintTitle ?? ''}`,
+    });
+
+    return saved;
   }
 
   async transferAssignment(
@@ -113,7 +127,7 @@ export class AssignmentsService {
     dto: TransferAssignmentDto,
     requesterId: string,
   ): Promise<Assignment> {
-    return this.dataSource.transaction(async (manager) => {
+    const { assignment, oldStaffId, complaintTitle } = await this.dataSource.transaction(async (manager) => {
       const assignment = await manager.findOne(Assignment, {
         where: { id: assignmentId, isActive: true },
       });
@@ -158,7 +172,40 @@ export class AssignmentsService {
         }),
       );
 
-      return assignment;
+      return { assignment, oldStaffId, complaintTitle: complaint?.title };
+    });
+
+    // Yeni ve eski personele gerçek zamanlı bildirim.
+    this.notifications.notifyUser(dto.toStaffId, 'complaint:transferred', {
+      complaintId: assignment.complaintId,
+      title: complaintTitle,
+    });
+    this.notifications.notifyUser(oldStaffId, 'notification:new', {
+      type: 'transfer',
+      message: `Şikayet başka bir personele aktarıldı: ${complaintTitle ?? ''}`,
+    });
+
+    return assignment;
+  }
+
+  // Şikayet çözüldüğünde/kapatıldığında atamayı pasifleştirir ve personelin yükünü
+  // azaltır. İdempotenttir: yalnızca aktif bir atama varsa işlem yapar (çift düşmeyi önler).
+  async releaseAssignment(complaintId: string): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const assignment = await manager.findOne(Assignment, {
+        where: { complaintId, isActive: true },
+      });
+      if (!assignment) return;
+
+      assignment.isActive = false;
+      await manager.save(assignment);
+
+      await manager
+        .createQueryBuilder()
+        .update(StaffAvailability)
+        .set({ currentLoad: () => 'GREATEST(current_load - 1, 0)' })
+        .where('staff_id = :staffId', { staffId: assignment.staffId })
+        .execute();
     });
   }
 
