@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useCities, useCreateCity, useUpdateCity, useDeleteCity } from '@/hooks/queries/useCities';
+import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { City } from '@/types/user.types';
 
@@ -20,6 +21,8 @@ export function CitiesPage() {
   const [editName, setEditName] = useState('');
   const [editCode, setEditCode] = useState('');
   const [editError, setEditError] = useState('');
+  const [cityToDeactivate, setCityToDeactivate] = useState<City | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const list = (cities as City[]).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,6 +64,17 @@ export function CitiesPage() {
     setEditError('');
   };
 
+  const openDeactivateModal = (city: City) => {
+    setDeleteError('');
+    setCityToDeactivate(city);
+  };
+
+  const closeDeactivateModal = () => {
+    if (deleteCity.isPending) return;
+    setDeleteError('');
+    setCityToDeactivate(null);
+  };
+
   const handleUpdate = () => {
     if (!editing) return;
 
@@ -85,6 +99,20 @@ export function CitiesPage() {
         },
       },
     );
+  };
+
+  const handleDeactivate = () => {
+    if (!cityToDeactivate) return;
+
+    setDeleteError('');
+    deleteCity.mutate(cityToDeactivate.id, {
+      onSuccess: () => {
+        setCityToDeactivate(null);
+      },
+      onError: (error) => {
+        setDeleteError(getApiErrorMessage(error, 'Şehir pasife alınamadı.'));
+      },
+    });
   };
 
   return (
@@ -152,15 +180,7 @@ export function CitiesPage() {
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(`"${c.name}" pasife alınsın mı?`)) {
-                        deleteCity.mutate(c.id, {
-                          onError: (error) => {
-                            alert(getApiErrorMessage(error, 'Şehir pasife alınamadı.'));
-                          },
-                        });
-                      }
-                    }}
+                    onClick={() => openDeactivateModal(c)}
                     className="text-on-surface-variant hover:text-error transition-colors"
                     title="Pasife al"
                   >
@@ -206,6 +226,19 @@ export function CitiesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!cityToDeactivate}
+        title="Şehri Pasife Al"
+        message={cityToDeactivate ? `"${cityToDeactivate.name}" pasife alınsın mı?` : ''}
+        confirmText="Pasife Al"
+        pendingText="Pasife Alınıyor..."
+        variant="danger"
+        isPending={deleteCity.isPending}
+        errorMessage={deleteError}
+        onConfirm={handleDeactivate}
+        onCancel={closeDeactivateModal}
+      />
     </div>
   );
 }

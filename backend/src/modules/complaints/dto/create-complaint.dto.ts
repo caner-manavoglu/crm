@@ -1,8 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { ComplaintPriority } from '../../../common/enums/complaint-priority.enum';
 
 export class CreateComplaintDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  customerName: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  customerSurname: string;
+
+  @ApiProperty()
+  @IsEmail()
+  @MaxLength(255)
+  customerEmail: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  @MaxLength(32)
+  customerPhone?: string;
+
   @ApiProperty()
   @IsString()
   @MaxLength(255)

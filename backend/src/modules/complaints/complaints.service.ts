@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -13,13 +18,17 @@ import { ComplaintStatus } from '../../common/enums/complaint-status.enum';
 import { User } from '../users/entities/user.entity';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { ResolutionProcessesService } from '../resolution-processes/resolution-processes.service';
+
+type QueryValue = string | number | boolean | Date | null;
 
 @Injectable()
 export class ComplaintsService {
-  private static readonly GUEST_EMAIL = 'guest.portal@crm.local';
-
   // İleri yönlü geçerli durum geçişleri (staff/müşteri için zorunlu, admin muaf).
-  private static readonly ALLOWED_TRANSITIONS: Record<ComplaintStatus, ComplaintStatus[]> = {
+  private static readonly ALLOWED_TRANSITIONS: Record<
+    ComplaintStatus,
+    ComplaintStatus[]
+  > = {
     [ComplaintStatus.PENDING]: [ComplaintStatus.ASSIGNED],
     [ComplaintStatus.ASSIGNED]: [ComplaintStatus.IN_PROGRESS],
     [ComplaintStatus.IN_PROGRESS]: [ComplaintStatus.RESOLVED],
@@ -29,14 +38,19 @@ export class ComplaintsService {
 
   constructor(
     @InjectRepository(Complaint) private complaintRepo: Repository<Complaint>,
-    @InjectRepository(ComplaintHistory) private historyRepo: Repository<ComplaintHistory>,
+    @InjectRepository(ComplaintHistory)
+    private historyRepo: Repository<ComplaintHistory>,
     @InjectRepository(User) private userRepo: Repository<User>,
     private assignmentsService: AssignmentsService,
     private notifications: NotificationsGateway,
+    private resolutionProcesses: ResolutionProcessesService,
   ) {}
 
-  async create(dto: CreateComplaintDto, customerId?: string): Promise<Complaint> {
-    const resolvedCustomerId = customerId ?? (await this.getOrCreateGuestCustomerId());
+  async create(
+    dto: CreateComplaintDto,
+    customerId?: string,
+  ): Promise<Complaint> {
+    const resolvedCustomerId = await this.resolveCustomerId(dto, customerId);
 
     const complaint = this.complaintRepo.create({
       title: dto.title,
@@ -51,11 +65,16 @@ export class ComplaintsService {
     await this.historyRepo.save(
       this.historyRepo.create({
         complaintId: saved.id,
-        userId: customerId,
+        userId: resolvedCustomerId,
         newStatus: saved.status,
-        notes: customerId ? 'Şikayet oluşturuldu.' : 'Portal üzerinden şikayet oluşturuldu.',
+        notes: customerId
+          ? 'Şikayet oluşturuldu.'
+          : 'Portal üzerinden şikayet oluşturuldu.',
       }),
     );
+
+    // Bu kategori+şehir için tanımlı bir çözüm süreci varsa adımları talebe uygula.
+    await this.resolutionProcesses.instantiateForComplaint(saved);
 
     // Adminlere yeni şikayet bildirimi (otomatik atanmazsa havuzda görünür).
     this.notifications.notifyAdmins('notification:new', {
@@ -70,7 +89,10 @@ export class ComplaintsService {
     return this.buildPaginatedQuery(query);
   }
 
-  async findByCustomer(customerId: string, query: ComplaintQueryDto): Promise<PaginatedResult<Complaint>> {
+  async findByCustomer(
+    customerId: string,
+    query: ComplaintQueryDto,
+  ): Promise<PaginatedResult<Complaint>> {
     return this.buildPaginatedQuery(query, { customerId });
   }
 
@@ -97,7 +119,11 @@ export class ComplaintsService {
     return this.getHistory(id);
   }
 
-  async updateStatus(id: string, dto: UpdateComplaintStatusDto, user: User): Promise<Complaint> {
+  async updateStatus(
+    id: string,
+    dto: UpdateComplaintStatusDto,
+    user: User,
+  ): Promise<Complaint> {
     const complaint = await this.findOne(id);
     await this.assertCanUpdateStatus(complaint, dto.status, user);
 
@@ -105,7 +131,10 @@ export class ComplaintsService {
     await this.complaintRepo.update(id, { status: dto.status });
 
     // Şikayet kapanınca atamayı serbest bırak ve personel yükünü azalt (kapasite sızıntısını önler).
-    if (dto.status === ComplaintStatus.RESOLVED || dto.status === ComplaintStatus.CLOSED) {
+    if (
+      dto.status === ComplaintStatus.RESOLVED ||
+      dto.status === ComplaintStatus.CLOSED
+    ) {
       await this.assignmentsService.releaseAssignment(id);
     }
 
@@ -152,21 +181,31 @@ export class ComplaintsService {
         throw new ForbiddenException('Bu şikayete erişim yetkiniz yok.');
       }
       // Müşteri yalnızca kendi çözülmüş şikayetini kapatabilir.
-      if (!(complaint.status === ComplaintStatus.RESOLVED && newStatus === ComplaintStatus.CLOSED)) {
+      if (
+        !(
+          complaint.status === ComplaintStatus.RESOLVED &&
+          newStatus === ComplaintStatus.CLOSED
+        )
+      ) {
         throw new ForbiddenException('Bu durum değişikliğine izniniz yok.');
       }
       return;
     }
 
     // STAFF: yalnızca kendisine aktif olarak atanmış şikayetlerde işlem yapabilir.
-    const assignment = await this.assignmentsService.findByComplaintId(complaint.id);
+    const assignment = await this.assignmentsService.findByComplaintId(
+      complaint.id,
+    );
     if (!assignment || assignment.staffId !== user.id) {
       throw new ForbiddenException('Bu şikayet size atanmamış.');
     }
     this.assertValidTransition(complaint.status, newStatus);
   }
 
-  private assertValidTransition(from: ComplaintStatus, to: ComplaintStatus): void {
+  private assertValidTransition(
+    from: ComplaintStatus,
+    to: ComplaintStatus,
+  ): void {
     const allowed = ComplaintsService.ALLOWED_TRANSITIONS[from] ?? [];
     if (!allowed.includes(to)) {
       throw new BadRequestException(`Geçersiz durum geçişi: ${from} → ${to}`);
@@ -175,9 +214,17 @@ export class ComplaintsService {
 
   private async buildPaginatedQuery(
     query: ComplaintQueryDto,
-    extraWhere: Record<string, any> = {},
+    extraWhere: Record<string, QueryValue> = {},
   ): Promise<PaginatedResult<Complaint>> {
-    const { page = 1, limit = 20, status, cityId, priority, fromDate, toDate } = query;
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      cityId,
+      priority,
+      fromDate,
+      toDate,
+    } = query;
 
     const qb = this.complaintRepo
       .createQueryBuilder('c')
@@ -196,31 +243,60 @@ export class ComplaintsService {
     if (toDate) qb.andWhere('c.created_at <= :toDate', { toDate });
 
     if (query.departmentId) {
-      qb.andWhere('cat.department_id = :departmentId', { departmentId: query.departmentId });
+      qb.andWhere('cat.department_id = :departmentId', {
+        departmentId: query.departmentId,
+      });
     }
 
-    qb.orderBy('c.created_at', 'DESC').skip((page - 1) * limit).take(limit);
+    qb.orderBy('c.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
     const [data, total] = await qb.getManyAndCount();
 
-    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
-  private async getOrCreateGuestCustomerId(): Promise<string> {
-    const existing = await this.userRepo.findOne({
-      where: { email: ComplaintsService.GUEST_EMAIL },
-    });
-    if (existing) return existing.id;
+  private async resolveCustomerId(
+    dto: CreateComplaintDto,
+    customerId?: string,
+  ): Promise<string> {
+    if (customerId) return customerId;
 
-    const guest = this.userRepo.create({
-      email: ComplaintsService.GUEST_EMAIL,
+    const normalizedEmail = dto.customerEmail.trim().toLowerCase();
+    const existing = await this.userRepo.findOne({
+      where: { email: normalizedEmail },
+    });
+
+    if (existing) {
+      if (existing.role !== UserRole.CUSTOMER) {
+        throw new BadRequestException(
+          'Bu e-posta personel/admin hesabına ait. Farklı bir e-posta kullanın.',
+        );
+      }
+
+      const updated = this.userRepo.merge(existing, {
+        name: dto.customerName.trim(),
+        surname: dto.customerSurname.trim(),
+        phone: dto.customerPhone?.trim() || undefined,
+      });
+      const saved = await this.userRepo.save(updated);
+      return saved.id;
+    }
+
+    const customer = this.userRepo.create({
+      email: normalizedEmail,
       password: randomUUID(),
-      name: 'Portal',
-      surname: 'Misafir',
+      name: dto.customerName.trim(),
+      surname: dto.customerSurname.trim(),
+      phone: dto.customerPhone?.trim() || undefined,
       role: UserRole.CUSTOMER,
       isActive: true,
     });
-    const saved = await this.userRepo.save(guest);
+    const saved = await this.userRepo.save(customer);
     return saved.id;
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import { useUsers, useCreateUser, useDeleteUser, useUpdateUser } from '@/hooks/queries/useUsers';
 import { useDepartments } from '@/hooks/queries/useDepartments';
 import { useCities } from '@/hooks/queries/useCities';
@@ -43,6 +44,8 @@ export function StaffManagementPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [editError, setEditError] = useState('');
+  const [staffToDeactivate, setStaffToDeactivate] = useState<User | null>(null);
+  const [deactivateError, setDeactivateError] = useState('');
 
   const list = staff as User[];
 
@@ -132,6 +135,31 @@ export function StaffManagementPage() {
     );
   };
 
+  const openDeactivateModal = (user: User) => {
+    setDeactivateError('');
+    setStaffToDeactivate(user);
+  };
+
+  const closeDeactivateModal = () => {
+    if (deleteUser.isPending) return;
+    setDeactivateError('');
+    setStaffToDeactivate(null);
+  };
+
+  const handleDeactivate = () => {
+    if (!staffToDeactivate) return;
+
+    setDeactivateError('');
+    deleteUser.mutate(staffToDeactivate.id, {
+      onSuccess: () => {
+        setStaffToDeactivate(null);
+      },
+      onError: (error) => {
+        setDeactivateError(getApiErrorMessage(error, 'Personel pasife alınamadı.'));
+      },
+    });
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       <div className="mb-md flex items-center justify-between flex-wrap gap-sm">
@@ -204,15 +232,7 @@ export function StaffManagementPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`${u.name} ${u.surname} pasife alınsın mı?`)) {
-                            deleteUser.mutate(u.id, {
-                              onError: (error) => {
-                                alert(getApiErrorMessage(error, 'Personel pasife alınamadı.'));
-                              },
-                            });
-                          }
-                        }}
+                        onClick={() => openDeactivateModal(u)}
                         className="text-on-surface-variant hover:text-error transition-colors"
                         title="Pasife al"
                       >
@@ -327,6 +347,19 @@ export function StaffManagementPage() {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!staffToDeactivate}
+        title="Personeli Pasife Al"
+        message={staffToDeactivate ? `${staffToDeactivate.name} ${staffToDeactivate.surname} pasife alınsın mı?` : ''}
+        confirmText="Pasife Al"
+        pendingText="Pasife Alınıyor..."
+        variant="danger"
+        isPending={deleteUser.isPending}
+        errorMessage={deactivateError}
+        onConfirm={handleDeactivate}
+        onCancel={closeDeactivateModal}
+      />
     </div>
   );
 }

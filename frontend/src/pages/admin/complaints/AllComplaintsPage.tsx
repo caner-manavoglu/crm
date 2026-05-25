@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ROUTES } from '@/router/routes';
 import { useAllComplaints } from '@/hooks/queries/useComplaints';
 import { useAdminAssign } from '@/hooks/queries/useAssignments';
 import { useAvailableStaff } from '@/hooks/queries/useStaffAvailability';
@@ -79,7 +81,7 @@ export function AllComplaintsPage() {
               ) : complaints.map((c) => (
                 <tr key={c.id} className="hover:bg-surface-container-highest/50 transition-colors">
                   <td className="px-md py-sm">
-                    <p className="font-body-sm text-body-sm text-on-surface font-medium max-w-xs truncate">{c.title}</p>
+                    <Link to={ROUTES.ADMIN.COMPLAINT_DETAIL(c.id)} className="font-body-sm text-body-sm text-on-surface font-medium max-w-xs truncate block hover:text-primary transition-colors">{c.title}</Link>
                     <p className="font-label-md text-label-md text-on-surface-variant mt-xs">
                       {new Date(c.createdAt).toLocaleDateString('tr-TR')}
                     </p>

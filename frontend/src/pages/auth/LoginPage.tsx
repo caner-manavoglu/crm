@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Eye, EyeOff, Lock, Mail, Sparkles, BellRing, BarChart3, Shield } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '@/router/routes';
+import heroImage from '@/assets/hero.png';
 
 const schema = z.object({
   email: z.string().email('Geçerli bir e-posta girin'),
@@ -41,97 +43,58 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-on-background">
-      <div className="hidden lg:flex lg:w-1/2 bg-surface-container-low border-r border-outline-variant relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(77,142,255,0.15),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(255,185,95,0.08),transparent_60%)]" />
-        <div className="relative z-10 flex flex-col justify-center px-lg">
-          <div className="mb-lg">
-            <div className="flex items-center gap-sm mb-md">
-              <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center">
-                <span className="material-symbols-outlined text-on-primary-container" style={{ fontSize: '28px' }}>support_agent</span>
+    <div className="min-h-screen bg-background text-on-background">
+      <div className="flex min-h-screen">
+        <div className="relative flex w-full items-center justify-center overflow-hidden bg-surface px-margin py-xl lg:w-1/2">
+          <div className="relative z-10 w-full max-w-[30rem] rounded-xl border border-outline-variant bg-surface-container p-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="mb-md flex items-center gap-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
+                <Shield size={22} strokeWidth={2.2} />
               </div>
               <div>
-                <h1 className="font-headline-lg text-headline-lg text-on-background font-bold">CRM</h1>
-                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Müşteri Yönetimi</p>
-              </div>
-            </div>
-            <h2 className="font-headline-xl text-headline-xl text-on-background mb-sm">
-              Müşteri şikayetlerini<br />akıllıca yönetin
-            </h2>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-[24rem]">
-              Otomatik atama motoru, gerçek zamanlı bildirimler ve kapsamlı raporlama ile müşteri memnuniyetini artırın.
-            </p>
-          </div>
-          <div className="flex flex-col gap-sm">
-            {[
-              { icon: 'auto_awesome', text: 'Akıllı otomatik atama algoritması' },
-              { icon: 'notifications_active', text: 'Gerçek zamanlı bildirimler' },
-              { icon: 'bar_chart', text: 'Kapsamlı analitik & raporlama' },
-            ].map((item) => (
-              <div key={item.icon} className="flex items-center gap-sm">
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px' }}>{item.icon}</span>
-                <span className="font-body-sm text-body-sm text-on-surface-variant">{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-margin">
-        <div className="w-full max-w-[28rem]">
-          <div className="bg-surface-container border border-outline-variant rounded-xl p-lg shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col gap-margin">
-            <div className="flex flex-col items-center gap-base text-center">
-              <div className="w-16 h-16 rounded-xl bg-primary-container flex items-center justify-center lg:hidden">
-                <span className="material-symbols-outlined text-on-primary-container" style={{ fontSize: '32px' }}>support_agent</span>
-              </div>
-              <div>
-                <h2 className="font-headline-md text-headline-md text-on-background">Giriş Yap</h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">CRM hesabınıza erişin</p>
+                <h1 className="font-headline-md text-headline-md text-on-surface">CareFlow'a Hoş Geldiniz</h1>
+                <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">Devam etmek için giriş yapın.</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-sm">
               <div className="flex flex-col gap-xs">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">E-posta</label>
+                <label className="font-label-md text-label-md text-on-surface uppercase">E-posta</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" style={{ fontSize: '18px' }}>mail</span>
+                  <Mail size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
                   <input
                     type="email"
                     {...register('email')}
-                    placeholder="ornek@email.com"
-                    className="w-full bg-surface-dim border border-outline-variant rounded-lg pl-[40px] pr-sm py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    placeholder="ornek@sirket.com"
+                    className="w-full rounded-lg border border-outline-variant bg-background py-[10px] pl-9 pr-sm font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
                 {errors.email && <p className="font-label-md text-label-md text-error">{errors.email.message}</p>}
               </div>
 
               <div className="flex flex-col gap-xs">
-                <label className="font-label-md text-label-md text-on-surface-variant uppercase">Şifre</label>
+                <label className="font-label-md text-label-md text-on-surface uppercase">Şifre</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" style={{ fontSize: '18px' }}>lock</span>
+                  <Lock size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     {...register('password')}
                     placeholder="••••••••"
-                    className="w-full bg-surface-dim border border-outline-variant rounded-lg pl-[40px] pr-[40px] py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    className="w-full rounded-lg border border-outline-variant bg-background py-[10px] pl-9 pr-[40px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                    className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors hover:text-on-surface"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {errors.password && <p className="font-label-md text-label-md text-error">{errors.password.message}</p>}
               </div>
 
               {error && (
-                <div className="flex items-center gap-xs rounded-lg border border-error/30 bg-error-container/30 px-sm py-xs">
-                  <span className="material-symbols-outlined text-error" style={{ fontSize: '16px' }}>error</span>
+                <div className="rounded-lg border border-error/30 bg-error-container/30 px-sm py-xs">
                   <p className="font-body-sm text-body-sm text-error">{error}</p>
                 </div>
               )}
@@ -139,38 +102,65 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary text-on-primary rounded-xl py-sm px-md font-body-md text-body-md font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] duration-150 mt-xs"
+                className="mt-xs w-full rounded-lg bg-primary px-md py-sm font-label-md text-label-md text-on-primary transition-colors hover:opacity-90 disabled:opacity-50"
               >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-xs">
-                    <span className="material-symbols-outlined animate-spin" style={{ fontSize: '18px' }}>progress_activity</span>
-                    Giriş yapılıyor...
-                  </span>
-                ) : 'Giriş Yap'}
+                {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
               </button>
             </form>
 
-            <p className="text-center font-body-sm text-body-sm text-on-surface-variant">
+            <p className="mt-sm text-center font-body-sm text-body-sm text-on-surface-variant">
               Hesabınız yok mu?{' '}
-              <Link to={ROUTES.REGISTER} className="text-primary hover:underline font-medium">
+              <Link to={ROUTES.REGISTER} className="font-medium text-primary hover:underline">
                 Kayıt Ol
               </Link>
             </p>
 
-            <div className="border border-outline-variant/60 rounded-lg p-sm bg-surface-container-low">
-              <p className="font-label-md text-label-md text-on-surface-variant uppercase mb-xs">Test Hesapları</p>
-              <div className="flex flex-col gap-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">Admin</span>
-                  <span className="font-body-sm text-body-sm text-on-surface">admin@crm.com / Admin123!</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">Personel</span>
-                  <span className="font-body-sm text-body-sm text-on-surface">ahmet@crm.com / Staff123!</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">Müşteri</span>
-                  <span className="font-body-sm text-body-sm text-on-surface">musteri@crm.com / Musteri123!</span>
+            <div className="mt-md rounded-lg border border-outline-variant/60 bg-surface-container-low p-sm">
+              <p className="mb-xs font-label-md text-label-md text-on-surface-variant uppercase">Test Hesapları</p>
+              <div className="space-y-xs font-body-sm text-body-sm text-on-surface">
+                <p><span className="text-on-surface-variant">Admin:</span> admin@crm.com / Admin123!</p>
+                <p><span className="text-on-surface-variant">Personel:</span> ahmet@crm.com / Staff123!</p>
+                <p><span className="text-on-surface-variant">Müşteri:</span> musteri@crm.com / Musteri123!</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="absolute bottom-margin left-1/2 -translate-x-1/2 text-center font-label-md text-label-md text-on-surface-variant/70">
+            © 2026 CareFlow CRM
+          </p>
+        </div>
+
+        <div className="relative hidden border-l border-outline-variant bg-surface-container-lowest lg:block lg:w-1/2">
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, #424754 1px, transparent 1px), linear-gradient(to bottom, #424754 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+          <div className="absolute inset-0 p-xl">
+            <div className="relative h-full overflow-hidden rounded-2xl border border-outline-variant bg-surface-dim">
+              <img src={heroImage} alt="CRM hero" className="h-full w-full object-cover opacity-70" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+              <div className="absolute bottom-xl left-xl right-xl space-y-sm">
+                <h2 className="font-headline-xl text-headline-xl text-on-surface">Müşteri İlişkilerinde Yeni Standart</h2>
+                <p className="max-w-xl font-body-md text-body-md text-on-surface-variant">
+                  CareFlow ile şikayet süreçlerini hızlandırın, ekip iş yükünü dengeleyin ve müşteri memnuniyetini ölçülebilir hale getirin.
+                </p>
+                <div className="mt-md grid grid-cols-3 gap-sm text-on-surface-variant">
+                  <div className="rounded-lg border border-outline-variant/50 bg-background/35 p-sm">
+                    <Sparkles size={16} className="mb-xs text-primary" />
+                    <p className="font-label-md text-label-md uppercase">Akıllı Atama</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/50 bg-background/35 p-sm">
+                    <BellRing size={16} className="mb-xs text-secondary" />
+                    <p className="font-label-md text-label-md uppercase">Anlık Uyarı</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/50 bg-background/35 p-sm">
+                    <BarChart3 size={16} className="mb-xs text-tertiary" />
+                    <p className="font-label-md text-label-md uppercase">Analitik</p>
+                  </div>
                 </div>
               </div>
             </div>

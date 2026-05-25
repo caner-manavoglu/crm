@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import {
   useCategories,
   useCreateCategory,
@@ -30,6 +31,8 @@ export function CategoriesPage() {
   const [editDepartmentId, setEditDepartmentId] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editError, setEditError] = useState('');
+  const [categoryToDeactivate, setCategoryToDeactivate] = useState<Category | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const list = categories as Category[];
   const depts = departments as Department[];
@@ -71,6 +74,17 @@ export function CategoriesPage() {
     setEditDescription('');
   };
 
+  const openDeactivateModal = (category: Category) => {
+    setDeleteError('');
+    setCategoryToDeactivate(category);
+  };
+
+  const closeDeactivateModal = () => {
+    if (deleteCategory.isPending) return;
+    setDeleteError('');
+    setCategoryToDeactivate(null);
+  };
+
   const handleUpdate = () => {
     if (!editing) return;
 
@@ -96,6 +110,20 @@ export function CategoriesPage() {
         },
       },
     );
+  };
+
+  const handleDeactivate = () => {
+    if (!categoryToDeactivate) return;
+
+    setDeleteError('');
+    deleteCategory.mutate(categoryToDeactivate.id, {
+      onSuccess: () => {
+        setCategoryToDeactivate(null);
+      },
+      onError: (error) => {
+        setDeleteError(getApiErrorMessage(error, 'Kategori pasife alınamadı.'));
+      },
+    });
   };
 
   return (
@@ -176,15 +204,7 @@ export function CategoriesPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`"${c.name}" pasife alınsın mı?`)) {
-                      deleteCategory.mutate(c.id, {
-                        onError: (error) => {
-                          alert(getApiErrorMessage(error, 'Kategori pasife alınamadı.'));
-                        },
-                      });
-                    }
-                  }}
+                  onClick={() => openDeactivateModal(c)}
                   className="text-on-surface-variant hover:text-error transition-colors"
                   title="Pasife al"
                 >
@@ -231,6 +251,19 @@ export function CategoriesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!categoryToDeactivate}
+        title="Kategoriyi Pasife Al"
+        message={categoryToDeactivate ? `"${categoryToDeactivate.name}" pasife alınsın mı?` : ''}
+        confirmText="Pasife Al"
+        pendingText="Pasife Alınıyor..."
+        variant="danger"
+        isPending={deleteCategory.isPending}
+        errorMessage={deleteError}
+        onConfirm={handleDeactivate}
+        onCancel={closeDeactivateModal}
+      />
     </div>
   );
 }

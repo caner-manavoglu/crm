@@ -7,12 +7,14 @@ import { ComplaintHistory } from './entities/complaint-history.entity';
 import { AssignmentsModule } from '../assignments/assignments.module';
 import { User } from '../users/entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ResolutionProcessesModule } from '../resolution-processes/resolution-processes.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Complaint, ComplaintHistory, User]),
     AssignmentsModule,
     NotificationsModule,
+    ResolutionProcessesModule,
   ],
   controllers: [ComplaintsController],
   providers: [ComplaintsService],

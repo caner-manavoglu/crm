@@ -5,6 +5,7 @@ import { useAssignmentByComplaint, useTransferComplaint } from '@/hooks/queries/
 import { useAvailableStaff } from '@/hooks/queries/useStaffAvailability';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
+import { ResolutionStepsPanel } from '@/components/shared/complaints/ResolutionStepsPanel';
 import { ROUTES } from '@/router/routes';
 import type { ComplaintHistory } from '@/types/complaint.types';
 
@@ -189,6 +190,10 @@ export function ComplaintWorkPage() {
           </div>
         </div>
       )}
+
+      <div className="mb-md">
+        <ResolutionStepsPanel complaintId={complaint.id} />
+      </div>
 
       <div className="bg-surface-container border border-outline-variant rounded-xl p-md">
         <h3 className="font-label-md text-label-md text-on-surface-variant uppercase mb-md flex items-center gap-xs">

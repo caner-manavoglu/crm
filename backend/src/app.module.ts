@@ -15,6 +15,7 @@ import { StaffAvailabilityModule } from './modules/staff-availability/staff-avai
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { ResolutionProcessesModule } from './modules/resolution-processes/resolution-processes.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     NotificationsModule,
     AnalyticsModule,
     SchedulerModule,
+    ResolutionProcessesModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import {
   useDepartments,
   useCreateDepartment,
@@ -24,6 +25,8 @@ export function DepartmentsPage() {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editError, setEditError] = useState('');
+  const [departmentToDeactivate, setDepartmentToDeactivate] = useState<Department | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const list = departments as Department[];
 
@@ -62,6 +65,17 @@ export function DepartmentsPage() {
     setEditDescription('');
   };
 
+  const openDeactivateModal = (department: Department) => {
+    setDeleteError('');
+    setDepartmentToDeactivate(department);
+  };
+
+  const closeDeactivateModal = () => {
+    if (deleteDept.isPending) return;
+    setDeleteError('');
+    setDepartmentToDeactivate(null);
+  };
+
   const handleUpdate = () => {
     if (!editing) return;
 
@@ -86,6 +100,20 @@ export function DepartmentsPage() {
         },
       },
     );
+  };
+
+  const handleDeactivate = () => {
+    if (!departmentToDeactivate) return;
+
+    setDeleteError('');
+    deleteDept.mutate(departmentToDeactivate.id, {
+      onSuccess: () => {
+        setDepartmentToDeactivate(null);
+      },
+      onError: (error) => {
+        setDeleteError(getApiErrorMessage(error, 'Departman pasife alınamadı.'));
+      },
+    });
   };
 
   return (
@@ -147,15 +175,7 @@ export function DepartmentsPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`"${d.name}" pasife alınsın mı?`)) {
-                      deleteDept.mutate(d.id, {
-                        onError: (error) => {
-                          alert(getApiErrorMessage(error, 'Departman pasife alınamadı.'));
-                        },
-                      });
-                    }
-                  }}
+                  onClick={() => openDeactivateModal(d)}
                   className="text-on-surface-variant hover:text-error transition-colors"
                   title="Pasife al"
                 >
@@ -196,6 +216,19 @@ export function DepartmentsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!departmentToDeactivate}
+        title="Departmanı Pasife Al"
+        message={departmentToDeactivate ? `"${departmentToDeactivate.name}" pasife alınsın mı?` : ''}
+        confirmText="Pasife Al"
+        pendingText="Pasife Alınıyor..."
+        variant="danger"
+        isPending={deleteDept.isPending}
+        errorMessage={deleteError}
+        onConfirm={handleDeactivate}
+        onCancel={closeDeactivateModal}
+      />
     </div>
   );
 }

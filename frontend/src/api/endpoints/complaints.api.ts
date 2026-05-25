@@ -2,6 +2,10 @@ import api from '../axios';
 
 export const complaintsApi = {
   create: (data: {
+    customerName: string;
+    customerSurname: string;
+    customerEmail: string;
+    customerPhone?: string;
     title: string;
     content: string;
     categoryId: string;

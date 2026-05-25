@@ -1,4 +1,16 @@
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Download,
+  Gauge,
+  Plus,
+  Search,
+  SortAsc,
+  Timer,
+} from 'lucide-react';
 import { useMyAssignments } from '@/hooks/queries/useAssignments';
 import { useMyAvailability, useToggleAvailability } from '@/hooks/queries/useStaffAvailability';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
@@ -6,125 +18,233 @@ import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
 import { ROUTES } from '@/router/routes';
 import type { Assignment } from '@/types/complaint.types';
 
+const STATUS_OPTIONS = [
+  { label: 'Tüm Durumlar', value: 'all' },
+  { label: 'Beklemede', value: 'pending' },
+  { label: 'Atandı', value: 'assigned' },
+  { label: 'İşlemde', value: 'in_progress' },
+  { label: 'Çözüldü', value: 'resolved' },
+  { label: 'Kapalı', value: 'closed' },
+] as const;
+
 export function StaffDashboardPage() {
+  const navigate = useNavigate();
   const { data: assignments = [] } = useMyAssignments();
   const { data: availability } = useMyAvailability();
   const toggleAvailability = useToggleAvailability();
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]['value']>('all');
+  const [search, setSearch] = useState('');
 
   const list = assignments as Assignment[];
+
+  const filteredAssignments = useMemo(() => {
+    const normalizedQuery = search.trim().toLowerCase();
+    return list.filter((item) => {
+      const complaint = item.complaint;
+      if (!complaint) return false;
+      if (statusFilter !== 'all' && complaint.status !== statusFilter) return false;
+      if (!normalizedQuery) return true;
+      return (
+        complaint.title.toLowerCase().includes(normalizedQuery)
+        || complaint.customer?.name.toLowerCase().includes(normalizedQuery)
+        || complaint.customer?.surname.toLowerCase().includes(normalizedQuery)
+        || complaint.category?.name.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [list, search, statusFilter]);
+
   const stats = {
     total: list.length,
-    inProgress: list.filter((a) => a.complaint?.status === 'in_progress').length,
-    assigned: list.filter((a) => a.complaint?.status === 'assigned').length,
-    resolved: list.filter((a) => ['resolved', 'closed'].includes(a.complaint?.status ?? '')).length,
+    active: list.filter((item) => ['assigned', 'in_progress'].includes(item.complaint?.status ?? '')).length,
+    resolvedWeekly: list.filter((item) => ['resolved', 'closed'].includes(item.complaint?.status ?? '')).length,
+    inProgress: list.filter((item) => item.complaint?.status === 'in_progress').length,
   };
 
-  const loadPct = availability ? (availability.currentLoad / availability.maxCapacity) * 100 : 0;
+  const loadPct = availability ? Math.min((availability.currentLoad / availability.maxCapacity) * 100, 100) : 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="mb-md flex items-center justify-between">
+    <div className="mx-auto w-full max-w-7xl">
+      <div className="mb-md flex flex-col gap-sm md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-on-background font-bold">Personel Paneli</h2>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
-            Atamalarınızı ve müsaitlik durumunuzu yönetin
+          <h2 className="font-headline-lg text-headline-lg text-on-surface">Personel Atama Panosu</h2>
+          <p className="mt-xs font-body-md text-body-md text-on-surface-variant">
+            Günlük operasyonel görev atamaları ve personel durum takibi.
           </p>
         </div>
-        <button
-          onClick={() => toggleAvailability.mutate()}
-          disabled={toggleAvailability.isPending}
-          className={`flex items-center gap-xs rounded-xl px-sm py-xs font-body-sm text-body-sm font-semibold transition-all active:scale-[0.98] duration-150 ${
-            availability?.isAvailable
-              ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
-              : 'bg-error/10 text-error border border-error/30 hover:bg-error/20'
-          }`}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-            {availability?.isAvailable ? 'check_circle' : 'cancel'}
-          </span>
-          {availability?.isAvailable ? 'Müsait' : 'Müsait Değil'}
-        </button>
-      </div>
 
-      <div className="grid grid-cols-2 gap-sm md:grid-cols-4 mb-md">
-        {[
-          { label: 'Toplam', value: stats.total, icon: 'assignment', color: 'text-on-surface' },
-          { label: 'İşlemde', value: stats.inProgress, icon: 'pending', color: 'text-secondary' },
-          { label: 'Yeni Atanan', value: stats.assigned, icon: 'new_releases', color: 'text-primary' },
-          { label: 'Çözümlendi', value: stats.resolved, icon: 'check_circle', color: 'text-tertiary' },
-        ].map((s) => (
-          <div key={s.label} className="bg-surface-container border border-outline-variant rounded-xl p-md">
-            <div className="flex items-center justify-between mb-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant uppercase">{s.label}</p>
-              <span className={`material-symbols-outlined ${s.color}`} style={{ fontSize: '20px' }}>{s.icon}</span>
-            </div>
-            <p className={`font-headline-xl text-headline-xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {availability && (
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-md mb-md">
-          <div className="flex items-center justify-between mb-sm">
-            <div className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '18px' }}>speed</span>
-              <p className="font-body-sm text-body-sm text-on-surface font-medium">Kapasite Kullanımı</p>
-            </div>
-            <p className="font-label-md text-label-md text-on-surface-variant">
-              <strong className="text-on-surface">{availability.currentLoad}</strong> / {availability.maxCapacity} görev
-            </p>
-          </div>
-          <div className="h-2 w-full rounded-full bg-surface-container-lowest">
-            <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                loadPct >= 75 ? 'bg-error' : loadPct >= 50 ? 'bg-secondary' : 'bg-primary'
-              }`}
-              style={{ width: `${Math.min(loadPct, 100)}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-        <div className="px-md py-sm border-b border-outline-variant flex items-center justify-between">
-          <h3 className="font-label-md text-label-md text-on-surface-variant uppercase flex items-center gap-xs">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>inbox</span>
-            Son Atamalar
-          </h3>
+        <div className="flex flex-wrap items-center gap-sm">
+          <button className="inline-flex h-12 items-center gap-xs rounded-lg border border-outline-variant bg-surface-container px-md font-label-md text-label-md text-on-surface transition-colors hover:border-primary/40">
+            <Download size={16} />
+            Rapor İndir
+          </button>
           <Link
             to={ROUTES.STAFF.COMPLAINTS}
-            className="font-label-md text-label-md text-primary hover:underline"
+            className="inline-flex h-12 items-center gap-xs rounded-lg bg-primary px-md font-label-md text-label-md text-on-primary transition-colors hover:opacity-90"
+          >
+            <Plus size={16} />
+            Yeni Görev
+          </Link>
+          <button
+            onClick={() => toggleAvailability.mutate()}
+            disabled={toggleAvailability.isPending}
+            className={`inline-flex h-12 items-center gap-xs rounded-lg border px-md font-label-md text-label-md transition-colors ${
+              availability?.isAvailable
+                ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                : 'border-error/40 bg-error/10 text-error hover:bg-error/20'
+            }`}
+          >
+            {availability?.isAvailable ? 'Müsait' : 'Müsait Değil'}
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-md grid grid-cols-1 gap-md md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-md">
+          <div className="mb-sm flex items-center justify-between">
+            <span className="font-label-md text-label-md uppercase text-on-surface-variant">Toplam Atanan</span>
+            <span className="rounded-full bg-primary-container/20 p-xs text-primary"><ClipboardList size={16} /></span>
+          </div>
+          <p className="font-headline-xl text-headline-xl text-on-surface">{stats.total}</p>
+          <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">Aktif iş gücü görünümü</p>
+        </div>
+
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-md">
+          <div className="mb-sm flex items-center justify-between">
+            <span className="font-label-md text-label-md uppercase text-on-surface-variant">Aktif Görevler</span>
+            <span className="rounded-full bg-secondary/15 p-xs text-secondary"><Timer size={16} /></span>
+          </div>
+          <p className="font-headline-xl text-headline-xl text-on-surface">{stats.active}</p>
+          <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">{stats.inProgress} acil bekleyen</p>
+        </div>
+
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-md">
+          <div className="mb-sm flex items-center justify-between">
+            <span className="font-label-md text-label-md uppercase text-on-surface-variant">Bu Hafta Tamamlanan</span>
+            <span className="rounded-full bg-[#22C55E]/15 p-xs text-[#B1E5D5]"><CheckCircle2 size={16} /></span>
+          </div>
+          <p className="font-headline-xl text-headline-xl text-on-surface">{stats.resolvedWeekly}</p>
+          <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">Çözüm ve kapanış kayıtları</p>
+        </div>
+
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-md">
+          <div className="mb-sm flex items-center justify-between">
+            <span className="font-label-md text-label-md uppercase text-on-surface-variant">Kapasite Kullanımı</span>
+            <span className="text-on-surface-variant"><Gauge size={16} /></span>
+          </div>
+          <p className="font-headline-xl text-headline-xl text-on-surface">{Math.round(loadPct)}%</p>
+          <p className="mb-sm font-body-sm text-body-sm text-on-surface-variant">
+            {availability?.currentLoad ?? 0}/{availability?.maxCapacity ?? 0} görev
+          </p>
+          <div className="h-2 w-full rounded-full bg-surface-dim">
+            <div className="h-2 rounded-full bg-primary" style={{ width: `${loadPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container">
+        <div className="border-b border-outline-variant bg-surface-container-low p-md">
+          <div className="flex flex-col gap-sm lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-sm">
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]['value'])}
+                  className="appearance-none rounded-lg border border-outline-variant bg-surface-dim px-sm py-[8px] pr-xl font-body-sm text-body-sm text-on-surface outline-none transition-colors focus:border-primary"
+                >
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="inline-flex items-center gap-xs rounded-lg border border-outline-variant bg-surface-dim px-sm py-[8px] font-body-sm text-body-sm text-on-surface">
+                <CalendarDays size={14} />
+                Son 7 Gün
+              </button>
+            </div>
+
+            <div className="flex w-full items-center gap-sm lg:w-auto">
+              <div className="relative w-full lg:w-[320px]">
+                <Search size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Görev veya müşteri ara..."
+                  className="w-full rounded-lg border border-outline-variant bg-surface-dim py-[8px] pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary"
+                />
+              </div>
+              <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-dim text-on-surface-variant transition-colors hover:text-on-surface">
+                <SortAsc size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-outline-variant bg-surface-container-lowest">
+                <th className="px-md py-sm font-label-md text-label-md uppercase text-on-surface-variant">Müşteri / Görev</th>
+                <th className="px-md py-sm font-label-md text-label-md uppercase text-on-surface-variant">Kategori</th>
+                <th className="px-md py-sm font-label-md text-label-md uppercase text-on-surface-variant">Öncelik</th>
+                <th className="px-md py-sm font-label-md text-label-md uppercase text-on-surface-variant">Durum</th>
+                <th className="px-md py-sm font-label-md text-label-md uppercase text-on-surface-variant">Atama Tarihi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/50">
+              {filteredAssignments.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-md py-lg text-center font-body-sm text-body-sm text-on-surface-variant">
+                    Uygun atama bulunamadı.
+                  </td>
+                </tr>
+              ) : (
+                filteredAssignments.map((assignment) => {
+                  const complaint = assignment.complaint;
+                  if (!complaint) return null;
+                  const initials = `${complaint.customer?.name?.[0] ?? 'M'}${complaint.customer?.surname?.[0] ?? 'K'}`.toUpperCase();
+                  return (
+                    <tr
+                      key={assignment.id}
+                      className="cursor-pointer transition-colors hover:bg-surface-container-highest/50"
+                      onClick={() => navigate(ROUTES.STAFF.COMPLAINT_WORK(complaint.id))}
+                    >
+                      <td className="px-md py-sm">
+                        <div className="flex items-center gap-sm">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-container/20 text-xs font-bold text-primary">
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="font-body-md text-body-md text-on-surface">{complaint.customer?.name} {complaint.customer?.surname}</p>
+                            <p className="font-body-sm text-body-sm text-on-surface-variant">{complaint.title}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-md py-sm font-body-sm text-body-sm text-on-surface-variant">{complaint.category?.name}</td>
+                      <td className="px-md py-sm">{complaint.priority && <PriorityBadge priority={complaint.priority} />}</td>
+                      <td className="px-md py-sm">{complaint.status && <ComplaintStatusBadge status={complaint.status} />}</td>
+                      <td className="px-md py-sm font-body-sm text-body-sm text-on-surface-variant">
+                        {new Date(assignment.assignedAt).toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-outline-variant bg-surface-container-low px-md py-sm">
+          <span className="font-body-sm text-body-sm text-on-surface-variant">
+            Toplam {filteredAssignments.length} kayıttan ilk {Math.min(filteredAssignments.length, 20)} satır gösteriliyor.
+          </span>
+          <Link
+            to={ROUTES.STAFF.COMPLAINTS}
+            className="font-label-md text-label-md text-primary transition-colors hover:text-on-surface"
           >
             Tümünü Gör
           </Link>
         </div>
-        {list.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-xl gap-sm">
-            <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '40px' }}>inbox</span>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">Henüz atama yok.</p>
-          </div>
-        ) : (
-          list.slice(0, 6).map((a) => (
-            <Link
-              key={a.id}
-              to={ROUTES.STAFF.COMPLAINT_WORK(a.complaint?.id ?? '')}
-              className="flex items-center justify-between px-md py-sm border-b border-outline-variant/50 last:border-0 hover:bg-surface-container-highest/50 transition-colors group"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-body-sm text-body-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
-                  {a.complaint?.title}
-                </p>
-                <p className="font-label-md text-label-md text-on-surface-variant mt-xs">
-                  {a.complaint?.category?.name} • {a.complaint?.city?.name}
-                </p>
-              </div>
-              <div className="flex items-center gap-xs ml-sm">
-                {a.complaint && <PriorityBadge priority={a.complaint.priority} />}
-                {a.complaint && <ComplaintStatusBadge status={a.complaint.status} />}
-              </div>
-            </Link>
-          ))
-        )}
       </div>
     </div>
   );

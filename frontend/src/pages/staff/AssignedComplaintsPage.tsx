@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { useMyAssignments } from '@/hooks/queries/useAssignments';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
@@ -7,92 +8,121 @@ import { ROUTES } from '@/router/routes';
 import type { Assignment } from '@/types/complaint.types';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'Tümü' },
+  { value: 'all', label: 'Tümü' },
   { value: 'assigned', label: 'Atandı' },
   { value: 'in_progress', label: 'İşlemde' },
-  { value: 'resolved', label: 'Çözümlendi' },
-];
+  { value: 'resolved', label: 'Çözüldü' },
+  { value: 'closed', label: 'Kapalı' },
+] as const;
 
 export function AssignedComplaintsPage() {
   const { data: assignments = [], isLoading } = useMyAssignments();
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]['value']>('all');
+  const [search, setSearch] = useState('');
+
+  const filteredAssignments = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return (assignments as Assignment[]).filter((assignment) => {
+      const complaint = assignment.complaint;
+      if (!complaint) return false;
+      if (statusFilter !== 'all' && complaint.status !== statusFilter) return false;
+      if (!query) return true;
+      return (
+        complaint.title.toLowerCase().includes(query)
+        || complaint.customer?.name.toLowerCase().includes(query)
+        || complaint.customer?.surname.toLowerCase().includes(query)
+        || complaint.category?.name.toLowerCase().includes(query)
+      );
+    });
+  }, [assignments, search, statusFilter]);
 
   if (isLoading) {
     return (
-      <div className="flex h-48 items-center justify-center gap-sm text-on-surface-variant">
-        <span className="material-symbols-outlined animate-spin" style={{ fontSize: '20px' }}>progress_activity</span>
-        <span className="font-body-sm text-body-sm">Yükleniyor...</span>
+      <div className="flex h-48 items-center justify-center">
+        <span className="font-body-sm text-body-sm text-on-surface-variant">Atamalar yükleniyor...</span>
       </div>
     );
   }
 
-  const filtered = (assignments as Assignment[]).filter((a) =>
-    !statusFilter || a.complaint?.status === statusFilter
-  );
-
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="mb-md flex items-center justify-between flex-wrap gap-sm">
+    <div className="mx-auto w-full max-w-7xl">
+      <div className="mb-md flex flex-col gap-sm md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-on-background font-bold">Atanan Şikayetler</h2>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
-            {filtered.length} şikayet
-          </p>
+          <h2 className="font-headline-lg text-headline-lg text-on-surface">Atanan Şikayetler</h2>
+          <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">Üzerinizdeki aktif ve geçmiş görevler</p>
         </div>
-        <div className="flex items-center gap-xs">
-          {STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`px-sm py-xs rounded-lg font-label-md text-label-md transition-colors ${
-                statusFilter === opt.value
-                  ? 'bg-primary text-on-primary'
-                  : 'bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+
+        <div className="relative w-full md:w-[320px]">
+          <Search size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Başlık veya müşteri ara..."
+            className="h-10 w-full rounded-lg border border-outline-variant bg-surface-dim pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+          />
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="bg-surface-container border border-outline-variant rounded-xl flex flex-col items-center justify-center py-xl gap-sm">
-          <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '48px' }}>assignment</span>
-          <p className="font-body-md text-body-md text-on-surface-variant">Şikayet bulunamadı.</p>
+      <div className="mb-md flex flex-wrap gap-xs">
+        {STATUS_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => setStatusFilter(option.value)}
+            className={`rounded-full border px-sm py-[6px] font-label-md text-label-md transition-colors ${
+              statusFilter === option.value
+                ? 'border-primary bg-primary-container text-on-primary-container'
+                : 'border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-on-surface'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredAssignments.length === 0 ? (
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-xl text-center">
+          <p className="font-body-md text-body-md text-on-surface">Kriterlere uygun görev bulunamadı.</p>
+          <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">Filtre veya arama metnini değiştirin.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-sm">
-          {filtered.map((a) => (
-            <Link
-              key={a.id}
-              to={ROUTES.STAFF.COMPLAINT_WORK(a.complaintId)}
-              className="block bg-surface-container border border-outline-variant rounded-xl p-md hover:border-primary/40 transition-colors group"
-            >
-              <div className="flex items-start justify-between gap-md">
-                <div className="min-w-0 flex-1">
-                  <p className="font-body-md text-body-md text-on-surface font-medium truncate group-hover:text-primary transition-colors">
-                    {a.complaint?.title}
-                  </p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
-                    {a.complaint?.category?.name} • {a.complaint?.city?.name}
-                  </p>
-                  <p className="font-label-md text-label-md text-on-surface-variant mt-xs flex items-center gap-xs">
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person</span>
-                    {a.complaint?.customer?.name} {a.complaint?.customer?.surname}
-                  </p>
+        <div className="grid grid-cols-1 gap-md lg:grid-cols-2">
+          {filteredAssignments.map((assignment) => {
+            const complaint = assignment.complaint;
+            if (!complaint) return null;
+            return (
+              <Link
+                key={assignment.id}
+                to={ROUTES.STAFF.COMPLAINT_WORK(assignment.complaintId)}
+                className="group block rounded-xl border border-outline-variant bg-surface-container p-md transition-colors hover:border-primary/40"
+              >
+                <div className="flex items-start justify-between gap-sm">
+                  <div className="min-w-0">
+                    <p className="font-headline-md text-headline-md text-on-surface transition-colors group-hover:text-primary">
+                      {complaint.title}
+                    </p>
+                    <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">
+                      {complaint.customer?.name} {complaint.customer?.surname}
+                    </p>
+                  </div>
+                  <PriorityBadge priority={complaint.priority} />
                 </div>
-                <div className="flex flex-col items-end gap-xs shrink-0">
-                  {a.complaint && (
-                    <>
-                      <ComplaintStatusBadge status={a.complaint.status} />
-                      <PriorityBadge priority={a.complaint.priority} />
-                    </>
-                  )}
+
+                <div className="mt-sm flex flex-wrap items-center gap-xs">
+                  <ComplaintStatusBadge status={complaint.status} />
+                  <span className="rounded-full border border-outline-variant bg-surface-dim px-sm py-[2px] font-label-md text-label-md text-on-surface-variant">
+                    {complaint.category?.name}
+                  </span>
+                  <span className="rounded-full border border-outline-variant bg-surface-dim px-sm py-[2px] font-label-md text-label-md text-on-surface-variant">
+                    {complaint.city?.name}
+                  </span>
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                <p className="mt-sm border-t border-outline-variant/50 pt-sm font-body-sm text-body-sm text-on-surface-variant">
+                  Atama: {new Date(assignment.assignedAt).toLocaleString('tr-TR')}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

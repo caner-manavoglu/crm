@@ -1,4 +1,5 @@
 export const ROUTES = {
+  LANDING: '/',
   LOGIN: '/login',
   REGISTER: '/register',
 
@@ -27,6 +28,8 @@ export const ROUTES = {
     CITIES: '/admin/cities',
     COMPLAINTS: '/admin/complaints',
     COMPLAINT_POOL: '/admin/complaints/pool',
+    COMPLAINT_DETAIL: (id: string) => `/admin/complaints/${id}`,
+    RESOLUTION_PROCESSES: '/admin/resolution-processes',
     ANALYTICS: '/admin/analytics',
   },
 };

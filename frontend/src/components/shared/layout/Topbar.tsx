@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { ROUTES } from '@/router/routes';
 import { cn } from '@/lib/utils';
+import { Bell, CircleHelp, LogOut, Search, X } from 'lucide-react';
 
 interface TopbarProps {
   title: string;
@@ -25,12 +26,20 @@ export function Topbar({ title, subtitle }: TopbarProps) {
   };
 
   return (
-    <header className="flex items-center justify-between px-margin w-full bg-surface-dim border-b border-outline-variant h-16 sticky top-0 z-40">
+    <header className="flex items-center justify-between px-margin w-full bg-surface-dim border-b border-outline-variant h-16 sticky top-0 z-40 gap-md">
       <div>
         <h2 className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-on-background">{title}</h2>
         {subtitle && (
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs hidden md:block">{subtitle}</p>
         )}
+      </div>
+
+      <div className="relative hidden md:block w-[320px]">
+        <Search size={16} className="absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
+        <input
+          placeholder="Ara..."
+          className="h-10 w-full rounded-full border border-outline-variant bg-surface-container py-[8px] pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+        />
       </div>
 
       <div className="flex items-center gap-sm text-on-surface-variant">
@@ -39,7 +48,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             onClick={() => { setShowNotifs(!showNotifs); if (!showNotifs) markAllRead(); }}
             className="p-xs hover:bg-surface-container-highest rounded-full transition-colors cursor-pointer active:scale-95 duration-150 relative"
           >
-            <span className="material-symbols-outlined">notifications</span>
+            <Bell size={18} strokeWidth={2.1} />
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 w-4 h-4 bg-error text-on-error text-[10px] rounded-full flex items-center justify-center font-bold">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -52,7 +61,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
               <div className="px-md py-sm border-b border-outline-variant flex items-center justify-between">
                 <span className="font-label-md text-label-md text-on-surface-variant uppercase">Bildirimler</span>
                 <button onClick={() => setShowNotifs(false)} className="text-on-surface-variant hover:text-on-surface">
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                  <X size={16} strokeWidth={2.1} />
                 </button>
               </div>
               {notifications.length === 0 ? (
@@ -77,6 +86,13 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           )}
         </div>
 
+        <button
+          title="Yardım"
+          className="p-xs hover:bg-surface-container-highest rounded-full transition-colors cursor-pointer active:scale-95 duration-150"
+        >
+          <CircleHelp size={18} strokeWidth={2.1} />
+        </button>
+
         <div className="h-8 w-8 rounded-full bg-primary-container/20 grid place-items-center text-primary font-bold text-sm leading-none border border-outline-variant ml-sm">
           <span className="translate-y-[0.5px]">{initials}</span>
         </div>
@@ -95,7 +111,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           title="Çıkış Yap"
           className="p-xs ml-sm hover:bg-surface-container-highest hover:text-error rounded-full transition-colors cursor-pointer active:scale-95 duration-150"
         >
-          <span className="material-symbols-outlined">logout</span>
+          <LogOut size={18} strokeWidth={2.1} />
         </button>
       </div>
     </header>
