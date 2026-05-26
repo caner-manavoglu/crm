@@ -1,5 +1,5 @@
 import {
-  ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,26 +21,37 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto) {
-    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (existing) throw new ConflictException('Bu e-posta adresi zaten kullanılıyor.');
-
-    // Public kayıt her zaman müşteri rolüyle oluşturulur (yetki yükseltmesini engeller).
-    const user = this.userRepo.create({ ...dto, role: UserRole.CUSTOMER });
-    await this.userRepo.save(user);
-
-    return this.generateTokens(user);
+  async register(_dto: RegisterDto) {
+    // Public müşteri kayıt akışı kapatıldı; müşteri tarafı girişsiz şikayet oluşturur.
+    throw new ForbiddenException(
+      'Müşteri kaydı kapatıldı. Lütfen şikayet formunu kullanın.',
+    );
   }
 
   async login(dto: LoginDto) {
     const user = await this.userRepo.findOne({
       where: { email: dto.email, isActive: true },
-      select: ['id', 'email', 'password', 'name', 'surname', 'role', 'departmentId', 'cityId'],
+      select: [
+        'id',
+        'email',
+        'password',
+        'name',
+        'surname',
+        'role',
+        'departmentId',
+        'cityId',
+      ],
     });
     if (!user) throw new UnauthorizedException('Geçersiz e-posta veya şifre.');
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Geçersiz e-posta veya şifre.');
+
+    if (user.role === UserRole.CUSTOMER) {
+      throw new ForbiddenException(
+        'Müşteri girişi kapatıldı. Lütfen şikayet formunu kullanın.',
+      );
+    }
 
     return this.generateTokens(user);
   }
@@ -50,11 +61,19 @@ export class AuthService {
       const payload = this.jwtService.verify(token, {
         secret: this.config.get('jwt.refreshSecret'),
       });
-      const user = await this.userRepo.findOne({ where: { id: payload.sub, isActive: true } });
+      const user = await this.userRepo.findOne({
+        where: { id: payload.sub, isActive: true },
+      });
       if (!user) throw new UnauthorizedException();
+      if (user.role === UserRole.CUSTOMER) {
+        throw new ForbiddenException('Müşteri oturum yenileme kapatıldı.');
+      }
       return this.generateTokens(user);
-    } catch {
-      throw new UnauthorizedException('Geçersiz veya süresi dolmuş refresh token.');
+    } catch (error) {
+      if (error instanceof ForbiddenException) throw error;
+      throw new UnauthorizedException(
+        'Geçersiz veya süresi dolmuş refresh token.',
+      );
     }
   }
 

@@ -1,6 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { ComplaintPriority } from '../../../common/enums/complaint-priority.enum';
 import { ComplaintStatus } from '../../../common/enums/complaint-status.enum';
 
@@ -9,6 +19,13 @@ export class ComplaintQueryDto {
   @IsEnum(ComplaintStatus)
   @IsOptional()
   status?: ComplaintStatus;
+
+  // Başlık, içerik, takip kodu veya kategori adında geçen serbest metin araması.
+  @ApiPropertyOptional()
+  @IsString()
+  @MaxLength(120)
+  @IsOptional()
+  q?: string;
 
   @ApiPropertyOptional()
   @IsUUID()

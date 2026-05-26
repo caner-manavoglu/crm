@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const roleHomeMap: Record<UserRole, string> = {
-  customer: ROUTES.CUSTOMER.HOME,
+  customer: ROUTES.CUSTOMER.SUBMIT,
   staff: ROUTES.STAFF.DASHBOARD,
   admin: ROUTES.ADMIN.DASHBOARD,
 };

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import { useUsers, useCreateUser, useDeleteUser, useUpdateUser } from '@/hooks/queries/useUsers';
 import { useDepartments } from '@/hooks/queries/useDepartments';
 import { useCities } from '@/hooks/queries/useCities';
+import { useCategories } from '@/hooks/queries/useCategories';
 import { getApiErrorMessage } from '@/lib/api-error';
-import type { User, Department, City } from '@/types/user.types';
+import { PaginationControls } from '@/components/shared/PaginationControls';
+import type { User, Department, City, Category } from '@/types/user.types';
 
 const inputClass = 'w-full bg-surface-dim border border-outline-variant rounded-lg px-sm py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors';
 const selectClass = inputClass;
@@ -30,9 +32,11 @@ const emptyEditForm = {
 };
 
 export function StaffManagementPage() {
-  const { data: staff = [], isLoading } = useUsers('staff');
+  const PAGE_SIZE = 10;
+
   const { data: departments = [] } = useDepartments();
   const { data: cities = [] } = useCities();
+  const { data: categories = [] } = useCategories();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
@@ -46,8 +50,41 @@ export function StaffManagementPage() {
   const [editError, setEditError] = useState('');
   const [staffToDeactivate, setStaffToDeactivate] = useState<User | null>(null);
   const [deactivateError, setDeactivateError] = useState('');
+  const [search, setSearch] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [page, setPage] = useState(1);
 
-  const list = staff as User[];
+  const categoryList = categories as Category[];
+  const citiesList = cities as City[];
+  const departmentsList = departments as Department[];
+
+  const selectedCategory = categoryList.find((c) => c.id === categoryFilter);
+  const selectedCategoryDepartmentId = selectedCategory?.departmentId;
+
+  const staffQuery = useMemo(() => ({
+    role: 'staff',
+    page,
+    limit: PAGE_SIZE,
+    search: search.trim() || undefined,
+    cityId: cityFilter || undefined,
+    departmentId:
+      (selectedCategoryDepartmentId ?? departmentFilter) || undefined,
+  }), [
+    page,
+    search,
+    cityFilter,
+    departmentFilter,
+    selectedCategoryDepartmentId,
+  ]);
+
+  const { data: staffResponse, isLoading } = useUsers(staffQuery);
+
+  const list = (staffResponse?.data ?? []) as User[];
+  const totalItems = staffResponse?.meta?.total ?? 0;
+  const totalPages = Math.max(1, staffResponse?.meta?.totalPages ?? 1);
+  const safePage = Math.min(page, totalPages);
 
   const openEditModal = (user: User) => {
     setEditError('');
@@ -153,6 +190,7 @@ export function StaffManagementPage() {
     deleteUser.mutate(staffToDeactivate.id, {
       onSuccess: () => {
         setStaffToDeactivate(null);
+        setPage(1);
       },
       onError: (error) => {
         setDeactivateError(getApiErrorMessage(error, 'Personel pasife alınamadı.'));
@@ -165,7 +203,7 @@ export function StaffManagementPage() {
       <div className="mb-md flex items-center justify-between flex-wrap gap-sm">
         <div>
           <h2 className="font-headline-lg text-headline-lg text-on-background font-bold">Personel</h2>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{list.length} personel</p>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{totalItems} personel</p>
         </div>
         <button
           onClick={() => {
@@ -177,6 +215,66 @@ export function StaffManagementPage() {
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person_add</span>
           Yeni Personel
         </button>
+      </div>
+
+      <div className="mb-md grid grid-cols-1 gap-sm md:grid-cols-2 lg:grid-cols-4">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" style={{ fontSize: '18px' }}>search</span>
+          <input
+            className={`${inputClass} pl-9`}
+            placeholder="Personel ara..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <select
+          className={selectClass}
+          value={cityFilter}
+          onChange={(e) => {
+            setCityFilter(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Tüm Şehirler</option>
+          {citiesList.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <select
+          className={selectClass}
+          value={departmentFilter}
+          onChange={(e) => {
+            setDepartmentFilter(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Tüm Birimler</option>
+          {departmentsList.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+        <select
+          className={selectClass}
+          value={categoryFilter}
+          onChange={(e) => {
+            const nextCategoryId = e.target.value;
+            setCategoryFilter(nextCategoryId);
+            setPage(1);
+            if (!nextCategoryId) return;
+            const matched = categoryList.find((c) => c.id === nextCategoryId);
+            if (matched?.departmentId) setDepartmentFilter(matched.departmentId);
+          }}
+        >
+          <option value="">Tüm Kategoriler</option>
+          {categoryList.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.department?.name ? `${c.department.name} — ${c.name}` : c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {isLoading ? (
@@ -200,7 +298,7 @@ export function StaffManagementPage() {
               {list.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-md py-xl text-center font-body-sm text-body-sm text-on-surface-variant">
-                    Henüz personel yok.
+                    Personel bulunamadı.
                   </td>
                 </tr>
               ) : list.map((u) => (
@@ -245,6 +343,17 @@ export function StaffManagementPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!isLoading && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          pageSize={staffResponse?.meta?.limit ?? PAGE_SIZE}
+          currentItemCount={list.length}
+        />
       )}
 
       {showCreateForm && (

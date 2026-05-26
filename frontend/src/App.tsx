@@ -1,15 +1,14 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/router/ProtectedRoute';
 import { ROUTES } from '@/router/routes';
 import { queryClient } from '@/lib/query-client';
 import { LandingPage } from '@/pages/public/LandingPage';
+import { TrackComplaintPage } from '@/pages/public/TrackComplaintPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
-import { CustomerLayout } from '@/pages/customer/CustomerLayout';
 import { SubmitComplaintPage } from '@/pages/customer/SubmitComplaintPage';
-import { MyComplaintsPage } from '@/pages/customer/MyComplaintsPage';
-import { ComplaintDetailPage } from '@/pages/customer/ComplaintDetailPage';
 import { StaffLayout } from '@/pages/staff/StaffLayout';
 import { StaffDashboardPage } from '@/pages/staff/StaffDashboardPage';
 import { AssignedComplaintsPage } from '@/pages/staff/AssignedComplaintsPage';
@@ -29,6 +28,7 @@ import { AnalyticsPage } from '@/pages/admin/AnalyticsPage';
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster position="top-right" theme="dark" richColors closeButton />
       <BrowserRouter>
         <Routes>
           <Route path={ROUTES.LANDING} element={<LandingPage />} />
@@ -36,13 +36,7 @@ export default function App() {
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
 
           <Route path={ROUTES.CUSTOMER.SUBMIT} element={<SubmitComplaintPage />} />
-          <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
-            <Route path={ROUTES.CUSTOMER.HOME} element={<CustomerLayout />}>
-              <Route index element={<Navigate to={ROUTES.CUSTOMER.COMPLAINTS} replace />} />
-              <Route path="complaints" element={<MyComplaintsPage />} />
-              <Route path="complaints/:id" element={<ComplaintDetailPage />} />
-            </Route>
-          </Route>
+          <Route path={ROUTES.TRACK} element={<TrackComplaintPage />} />
 
           <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
             <Route path={ROUTES.STAFF.HOME} element={<StaffLayout />}>

@@ -7,7 +7,9 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(@InjectRepository(Category) private catRepo: Repository<Category>) {}
+  constructor(
+    @InjectRepository(Category) private catRepo: Repository<Category>,
+  ) {}
 
   create(dto: CreateCategoryDto) {
     return this.catRepo.save(this.catRepo.create(dto));
@@ -16,11 +18,18 @@ export class CategoriesService {
   findAll(departmentId?: string) {
     const where: any = { isActive: true };
     if (departmentId) where.departmentId = departmentId;
-    return this.catRepo.find({ where, relations: ['department'], order: { name: 'ASC' } });
+    return this.catRepo.find({
+      where,
+      relations: ['department'],
+      order: { name: 'ASC' },
+    });
   }
 
   async findOne(id: string) {
-    const cat = await this.catRepo.findOne({ where: { id }, relations: ['department'] });
+    const cat = await this.catRepo.findOne({
+      where: { id },
+      relations: ['department'],
+    });
     if (!cat) throw new NotFoundException('Kategori bulunamadı.');
     return cat;
   }

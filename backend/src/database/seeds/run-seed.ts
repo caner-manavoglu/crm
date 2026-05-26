@@ -10,6 +10,9 @@ import { StaffAvailability } from '../../modules/staff-availability/entities/sta
 import { Complaint } from '../../modules/complaints/entities/complaint.entity';
 import { ComplaintHistory } from '../../modules/complaints/entities/complaint-history.entity';
 import { Assignment } from '../../modules/assignments/entities/assignment.entity';
+import { ResolutionProcess } from '../../modules/resolution-processes/entities/resolution-process.entity';
+import { ResolutionProcessStep } from '../../modules/resolution-processes/entities/resolution-process-step.entity';
+import { ComplaintResolutionStep } from '../../modules/resolution-processes/entities/complaint-resolution-step.entity';
 
 dotenv.config();
 
@@ -20,7 +23,19 @@ const dataSource = new DataSource({
   database: process.env.DB_NAME || 'crm_db',
   username: process.env.DB_USER || 'crm_user',
   password: process.env.DB_PASSWORD || 'crm_password',
-  entities: [City, Department, Category, User, StaffAvailability, Complaint, ComplaintHistory, Assignment],
+  entities: [
+    City,
+    Department,
+    Category,
+    User,
+    StaffAvailability,
+    Complaint,
+    ComplaintHistory,
+    Assignment,
+    ResolutionProcess,
+    ResolutionProcessStep,
+    ComplaintResolutionStep,
+  ],
   synchronize: true,
 });
 

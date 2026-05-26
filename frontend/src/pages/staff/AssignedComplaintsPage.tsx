@@ -5,6 +5,7 @@ import { useMyAssignments } from '@/hooks/queries/useAssignments';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
 import { ROUTES } from '@/router/routes';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Assignment } from '@/types/complaint.types';
 
 const STATUS_OPTIONS = [
@@ -19,6 +20,9 @@ export function AssignedComplaintsPage() {
   const { data: assignments = [], isLoading } = useMyAssignments();
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]['value']>('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 8;
 
   const filteredAssignments = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -35,6 +39,13 @@ export function AssignedComplaintsPage() {
       );
     });
   }, [assignments, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAssignments.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedAssignments = filteredAssignments.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   if (isLoading) {
     return (
@@ -56,7 +67,10 @@ export function AssignedComplaintsPage() {
           <Search size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
             placeholder="Başlık veya müşteri ara..."
             className="h-10 w-full rounded-lg border border-outline-variant bg-surface-dim pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
           />
@@ -67,7 +81,10 @@ export function AssignedComplaintsPage() {
         {STATUS_OPTIONS.map((option) => (
           <button
             key={option.value}
-            onClick={() => setStatusFilter(option.value)}
+            onClick={() => {
+              setStatusFilter(option.value);
+              setPage(1);
+            }}
             className={`rounded-full border px-sm py-[6px] font-label-md text-label-md transition-colors ${
               statusFilter === option.value
                 ? 'border-primary bg-primary-container text-on-primary-container'
@@ -86,7 +103,7 @@ export function AssignedComplaintsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-md lg:grid-cols-2">
-          {filteredAssignments.map((assignment) => {
+          {pagedAssignments.map((assignment) => {
             const complaint = assignment.complaint;
             if (!complaint) return null;
             return (
@@ -124,6 +141,17 @@ export function AssignedComplaintsPage() {
             );
           })}
         </div>
+      )}
+
+      {!isLoading && filteredAssignments.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={filteredAssignments.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedAssignments.length}
+        />
       )}
     </div>
   );

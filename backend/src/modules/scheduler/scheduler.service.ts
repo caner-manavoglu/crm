@@ -13,14 +13,17 @@ export class SchedulerService {
   constructor(
     private assignmentsService: AssignmentsService,
     private availabilityService: StaffAvailabilityService,
-    @InjectRepository(StaffAvailability) private availRepo: Repository<StaffAvailability>,
+    @InjectRepository(StaffAvailability)
+    private availRepo: Repository<StaffAvailability>,
   ) {}
 
   @Cron('*/5 * * * *')
   async handlePoolAssignment() {
     this.logger.log('Pool assignment cron started');
     const result = await this.assignmentsService.processPool();
-    this.logger.log(`Pool cron: ${result.assigned} atandı, ${result.stillPending} bekliyor`);
+    this.logger.log(
+      `Pool cron: ${result.assigned} atandı, ${result.stillPending} bekliyor`,
+    );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)

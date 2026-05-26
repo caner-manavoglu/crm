@@ -7,7 +7,9 @@ import { Assignment } from '../assignments/entities/assignment.entity';
 import { StaffAvailability } from '../staff-availability/entities/staff-availability.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Complaint, Assignment, StaffAvailability])],
+  imports: [
+    TypeOrmModule.forFeature([Complaint, Assignment, StaffAvailability]),
+  ],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],
 })

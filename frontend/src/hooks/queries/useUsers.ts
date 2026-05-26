@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usersApi } from '@/api/endpoints/users.api';
+import { usersApi, type UserListParams } from '@/api/endpoints/users.api';
 
-export function useUsers(role?: string) {
+export function useUsers(params?: UserListParams) {
   return useQuery({
-    queryKey: ['users', role],
-    queryFn: () => usersApi.findAll(role),
+    queryKey: ['users', params ?? {}],
+    queryFn: () => usersApi.findAll(params),
   });
 }
 

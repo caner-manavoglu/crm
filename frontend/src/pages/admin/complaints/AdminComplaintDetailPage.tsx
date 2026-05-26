@@ -3,6 +3,8 @@ import { useComplaint, useComplaintHistory } from '@/hooks/queries/useComplaints
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
 import { ResolutionStepsPanel } from '@/components/shared/complaints/ResolutionStepsPanel';
+import { MessageThread } from '@/components/shared/complaints/MessageThread';
+import { AttachmentPanel } from '@/components/shared/complaints/AttachmentPanel';
 import { ROUTES } from '@/router/routes';
 import type { ComplaintHistory } from '@/types/complaint.types';
 
@@ -47,7 +49,11 @@ export function AdminComplaintDetailPage() {
           </div>
         </div>
         <p className="font-body-md text-body-md text-on-surface leading-relaxed">{complaint.content}</p>
-        <div className="mt-md pt-sm border-t border-outline-variant/50 grid grid-cols-1 gap-sm md:grid-cols-3">
+        <div className="mt-md p-md bg-surface-container-high rounded-lg border border-outline-variant/30">
+          <p className="font-label-md text-label-md text-on-surface-variant uppercase mb-xs">Açık Adres</p>
+          <p className="font-body-sm text-body-sm text-on-surface">{complaint.address}</p>
+        </div>
+        <div className="mt-md pt-sm border-t border-outline-variant/50 grid grid-cols-1 gap-sm md:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-xs">
             <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '16px' }}>category</span>
             <span className="font-body-sm text-body-sm text-on-surface-variant">
@@ -65,6 +71,14 @@ export function AdminComplaintDetailPage() {
             <span className="font-body-sm text-body-sm text-on-surface-variant">
               <strong className="text-on-surface font-medium">
                 {complaint.customer?.name} {complaint.customer?.surname}
+              </strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-xs">
+            <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: '16px' }}>call</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">
+              <strong className="text-on-surface font-medium">
+                {complaint.customer?.phone || 'Belirtilmedi'}
               </strong>
             </span>
           </div>
@@ -106,6 +120,11 @@ export function AdminComplaintDetailPage() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="mt-md grid grid-cols-1 gap-md lg:grid-cols-2">
+        <MessageThread complaintId={complaint.id} />
+        <AttachmentPanel mode="auth" complaintId={complaint.id} />
       </div>
     </div>
   );

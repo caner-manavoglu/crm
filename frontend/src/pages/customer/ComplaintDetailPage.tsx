@@ -1,8 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock3, FileDown, Hash, MapPin, TimerReset } from 'lucide-react';
 import { useComplaint, useComplaintHistory } from '@/hooks/queries/useComplaints';
+import { useAuthStore } from '@/stores/auth.store';
+import { RatingCard } from '@/components/shared/complaints/RatingCard';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
+import { MessageThread } from '@/components/shared/complaints/MessageThread';
+import { AttachmentPanel } from '@/components/shared/complaints/AttachmentPanel';
 import { ROUTES } from '@/router/routes';
 import type { ComplaintHistory } from '@/types/complaint.types';
 
@@ -10,6 +14,7 @@ export function ComplaintDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: complaint, isLoading } = useComplaint(id!);
   const { data: history = [] } = useComplaintHistory(id!);
+  const user = useAuthStore((s) => s.user);
 
   if (isLoading) {
     return (
@@ -54,6 +59,10 @@ export function ComplaintDetailPage() {
 
               <h2 className="font-headline-md text-headline-md text-on-surface">{complaint.title}</h2>
               <p className="mt-sm max-w-3xl font-body-sm text-body-sm text-on-surface-variant">{complaint.content}</p>
+              <div className="mt-md p-md bg-surface-container-high rounded-lg border border-outline-variant/30">
+                <p className="font-label-md text-label-md text-on-surface-variant uppercase mb-xs tracking-widest">Açık Adres</p>
+                <p className="font-body-sm text-body-sm text-on-surface">{complaint.address}</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-xs">
@@ -62,7 +71,7 @@ export function ComplaintDetailPage() {
             </div>
           </div>
 
-          <div className="mt-md grid grid-cols-1 gap-sm border-t border-outline-variant/50 pt-sm md:grid-cols-3">
+          <div className="mt-md grid grid-cols-1 gap-sm border-t border-outline-variant/50 pt-sm md:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-xs text-on-surface-variant">
               <TimerReset size={15} />
               <span className="font-body-sm text-body-sm">{complaint.category?.name ?? 'Kategori yok'}</span>
@@ -74,6 +83,10 @@ export function ComplaintDetailPage() {
             <div className="flex items-center gap-xs text-on-surface-variant">
               <Clock3 size={15} />
               <span className="font-body-sm text-body-sm">{new Date(complaint.createdAt).toLocaleString('tr-TR')}</span>
+            </div>
+            <div className="flex items-center gap-xs text-on-surface-variant">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>call</span>
+              <span className="font-body-sm text-body-sm">{complaint.customer?.phone || 'Belirtilmedi'}</span>
             </div>
           </div>
         </div>
@@ -119,6 +132,19 @@ export function ComplaintDetailPage() {
             Özet PDF İndir
           </button>
         </div>
+      </div>
+
+      <div className="mt-md">
+        <RatingCard
+          complaintId={complaint.id}
+          status={complaint.status}
+          isOwner={!!user && user.id === complaint.customerId}
+        />
+      </div>
+
+      <div className="mt-md grid grid-cols-1 gap-md lg:grid-cols-2">
+        <MessageThread complaintId={complaint.id} />
+        <AttachmentPanel mode="auth" complaintId={complaint.id} />
       </div>
     </div>
   );

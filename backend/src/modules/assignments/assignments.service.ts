@@ -19,17 +19,25 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 @Injectable()
 export class AssignmentsService {
   constructor(
-    @InjectRepository(Assignment) private assignmentRepo: Repository<Assignment>,
+    @InjectRepository(Assignment)
+    private assignmentRepo: Repository<Assignment>,
     @InjectRepository(Complaint) private complaintRepo: Repository<Complaint>,
-    @InjectRepository(ComplaintHistory) private historyRepo: Repository<ComplaintHistory>,
-    @InjectRepository(StaffAvailability) private availRepo: Repository<StaffAvailability>,
+    @InjectRepository(ComplaintHistory)
+    private historyRepo: Repository<ComplaintHistory>,
+    @InjectRepository(StaffAvailability)
+    private availRepo: Repository<StaffAvailability>,
     @InjectRepository(Category) private categoryRepo: Repository<Category>,
     private dataSource: DataSource,
     private notifications: NotificationsGateway,
   ) {}
 
-  async handleNewComplaint(complaint: Complaint, dto: CreateComplaintDto): Promise<Assignment | null> {
-    const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+  async handleNewComplaint(
+    complaint: Complaint,
+    dto: CreateComplaintDto,
+  ): Promise<Assignment | null> {
+    const category = await this.categoryRepo.findOne({
+      where: { id: dto.categoryId },
+    });
     if (!category) return null;
 
     if (!dto.autoAssign && dto.preferredStaffId) {
@@ -42,16 +50,27 @@ export class AssignmentsService {
     }
 
     if (dto.autoAssign) {
-      const staff = await this.findMostAvailableStaff(category.departmentId, complaint.cityId);
+      const staff = await this.findMostAvailableStaff(
+        category.departmentId,
+        complaint.cityId,
+      );
       if (staff) {
-        return this.assignComplaint(complaint.id, staff.staffId, AssignmentType.AUTO, complaint.customerId);
+        return this.assignComplaint(
+          complaint.id,
+          staff.staffId,
+          AssignmentType.AUTO,
+          complaint.customerId,
+        );
       }
     }
 
     return null;
   }
 
-  async findMostAvailableStaff(departmentId: string, cityId: string): Promise<StaffAvailability | null> {
+  async findMostAvailableStaff(
+    departmentId: string,
+    cityId: string,
+  ): Promise<StaffAvailability | null> {
     return this.availRepo
       .createQueryBuilder('sa')
       .innerJoin('sa.staff', 'u')
@@ -60,7 +79,7 @@ export class AssignmentsService {
       .andWhere('u.isActive = true')
       .andWhere('sa.is_available = true')
       .andWhere('sa.current_load < sa.max_capacity')
-      .orderBy('sa.current_load', 'ASC')
+      .orderBy('sa.currentLoad', 'ASC')
       .getOne();
   }
 
@@ -70,44 +89,57 @@ export class AssignmentsService {
     type: AssignmentType,
     assignedById?: string,
   ): Promise<Assignment> {
-    const { saved, complaintTitle } = await this.dataSource.transaction(async (manager) => {
-      // Lock staff_availability row to prevent race conditions
-      const avail = await manager
-        .createQueryBuilder(StaffAvailability, 'sa')
-        .setLock('pessimistic_write')
-        .where('sa.staff_id = :staffId', { staffId })
-        .getOne();
+    const { saved, complaintTitle } = await this.dataSource.transaction(
+      async (manager) => {
+        // Lock staff_availability row to prevent race conditions
+        const avail = await manager
+          .createQueryBuilder(StaffAvailability, 'sa')
+          .setLock('pessimistic_write')
+          .where('sa.staff_id = :staffId', { staffId })
+          .getOne();
 
-      if (!avail || !avail.isAvailable || avail.currentLoad >= avail.maxCapacity) {
-        throw new BadRequestException('Personel şu anda müsait değil.');
-      }
+        if (
+          !avail ||
+          !avail.isAvailable ||
+          avail.currentLoad >= avail.maxCapacity
+        ) {
+          throw new BadRequestException('Personel şu anda müsait değil.');
+        }
 
-      avail.currentLoad += 1;
-      await manager.save(avail);
+        avail.currentLoad += 1;
+        await manager.save(avail);
 
-      const assignment = manager.create(Assignment, {
-        complaintId,
-        staffId,
-        assignedById,
-        assignmentType: type,
-      });
-      const saved = await manager.save(assignment);
-
-      await manager.update(Complaint, complaintId, { status: ComplaintStatus.ASSIGNED });
-
-      const complaint = await manager.findOne(Complaint, { where: { id: complaintId } });
-      await manager.save(
-        manager.create(ComplaintHistory, {
+        const assignment = manager.create(Assignment, {
           complaintId,
-          userId: assignedById,
-          oldStatus: ComplaintStatus.PENDING,
-          newStatus: ComplaintStatus.ASSIGNED,
-          notes: type === AssignmentType.AUTO ? 'Otomatik atandı.' : 'Manuel atandı.',
-        }),
-      );
+          staffId,
+          assignedById,
+          assignmentType: type,
+        });
+        const saved = await manager.save(assignment);
 
-      return { saved, complaintTitle: complaint?.title };
-    });
+        await manager.update(Complaint, complaintId, {
+          status: ComplaintStatus.ASSIGNED,
+        });
+
+        const complaint = await manager.findOne(Complaint, {
+          where: { id: complaintId },
+        });
+        await manager.save(
+          manager.create(ComplaintHistory, {
+            complaintId,
+            userId: assignedById,
+            oldStatus: ComplaintStatus.PENDING,
+            newStatus: ComplaintStatus.ASSIGNED,
+            notes:
+              type === AssignmentType.AUTO
+                ? 'Otomatik atandı.'
+                : 'Manuel atandı.',
+          }),
+        );
+
+        return { saved, complaintTitle: complaint?.title };
+      },
+    );
 
     // Atanan personele ve adminlere gerçek zamanlı bildirim (transaction dışında).
     this.notifications.notifyUser(staffId, 'complaint:assigned', {
@@ -127,53 +159,60 @@ export class AssignmentsService {
     dto: TransferAssignmentDto,
     requesterId: string,
   ): Promise<Assignment> {
-    const { assignment, oldStaffId, complaintTitle } = await this.dataSource.transaction(async (manager) => {
-      const assignment = await manager.findOne(Assignment, {
-        where: { id: assignmentId, isActive: true },
+    const { assignment, oldStaffId, complaintTitle } =
+      await this.dataSource.transaction(async (manager) => {
+        const assignment = await manager.findOne(Assignment, {
+          where: { id: assignmentId, isActive: true },
+        });
+        if (!assignment) throw new NotFoundException('Atama bulunamadı.');
+
+        const oldStaffId = assignment.staffId;
+
+        const newAvail = await manager
+          .createQueryBuilder(StaffAvailability, 'sa')
+          .setLock('pessimistic_write')
+          .where('sa.staff_id = :staffId', { staffId: dto.toStaffId })
+          .getOne();
+
+        if (
+          !newAvail ||
+          !newAvail.isAvailable ||
+          newAvail.currentLoad >= newAvail.maxCapacity
+        ) {
+          throw new BadRequestException('Hedef personel müsait değil.');
+        }
+
+        assignment.staffId = dto.toStaffId;
+        assignment.assignmentType = AssignmentType.TRANSFER;
+        assignment.assignedById = requesterId;
+        assignment.notes = dto.reason ?? null;
+        await manager.save(assignment);
+
+        newAvail.currentLoad += 1;
+        await manager.save(newAvail);
+
+        await manager
+          .createQueryBuilder()
+          .update(StaffAvailability)
+          .set({ currentLoad: () => 'GREATEST(current_load - 1, 0)' })
+          .where('staff_id = :staffId', { staffId: oldStaffId })
+          .execute();
+
+        const complaint = await manager.findOne(Complaint, {
+          where: { id: assignment.complaintId },
+        });
+        await manager.save(
+          manager.create(ComplaintHistory, {
+            complaintId: assignment.complaintId,
+            userId: requesterId,
+            oldStatus: complaint?.status,
+            newStatus: complaint?.status,
+            notes: `Transfer: ${dto.reason || 'Yeni personele aktarıldı.'}`,
+          }),
+        );
+
+        return { assignment, oldStaffId, complaintTitle: complaint?.title };
       });
-      if (!assignment) throw new NotFoundException('Atama bulunamadı.');
-
-      const oldStaffId = assignment.staffId;
-
-      const newAvail = await manager
-        .createQueryBuilder(StaffAvailability, 'sa')
-        .setLock('pessimistic_write')
-        .where('sa.staff_id = :staffId', { staffId: dto.toStaffId })
-        .getOne();
-
-      if (!newAvail || !newAvail.isAvailable || newAvail.currentLoad >= newAvail.maxCapacity) {
-        throw new BadRequestException('Hedef personel müsait değil.');
-      }
-
-      assignment.staffId = dto.toStaffId;
-      assignment.assignmentType = AssignmentType.TRANSFER;
-      assignment.assignedById = requesterId;
-      assignment.notes = dto.reason ?? null;
-      await manager.save(assignment);
-
-      newAvail.currentLoad += 1;
-      await manager.save(newAvail);
-
-      await manager
-        .createQueryBuilder()
-        .update(StaffAvailability)
-        .set({ currentLoad: () => 'GREATEST(current_load - 1, 0)' })
-        .where('staff_id = :staffId', { staffId: oldStaffId })
-        .execute();
-
-      const complaint = await manager.findOne(Complaint, { where: { id: assignment.complaintId } });
-      await manager.save(
-        manager.create(ComplaintHistory, {
-          complaintId: assignment.complaintId,
-          userId: requesterId,
-          oldStatus: complaint?.status,
-          newStatus: complaint?.status,
-          notes: `Transfer: ${dto.reason || 'Yeni personele aktarıldı.'}`,
-        }),
-      );
-
-      return { assignment, oldStaffId, complaintTitle: complaint?.title };
-    });
 
     // Yeni ve eski personele gerçek zamanlı bildirim.
     this.notifications.notifyUser(dto.toStaffId, 'complaint:transferred', {
@@ -212,7 +251,12 @@ export class AssignmentsService {
   async getMyAssignments(staffId: string) {
     return this.assignmentRepo.find({
       where: { staffId, isActive: true },
-      relations: ['complaint', 'complaint.category', 'complaint.city', 'complaint.customer'],
+      relations: [
+        'complaint',
+        'complaint.category',
+        'complaint.city',
+        'complaint.customer',
+      ],
       order: { assignedAt: 'DESC' },
     });
   }
@@ -243,7 +287,11 @@ export class AssignmentsService {
 
       if (staff) {
         try {
-          await this.assignComplaint(complaint.id, staff.staffId, AssignmentType.AUTO);
+          await this.assignComplaint(
+            complaint.id,
+            staff.staffId,
+            AssignmentType.AUTO,
+          );
           assigned++;
         } catch {
           // Staff became unavailable between find and assign — skip
@@ -256,6 +304,11 @@ export class AssignmentsService {
   }
 
   async adminAssign(complaintId: string, staffId: string, adminId: string) {
-    return this.assignComplaint(complaintId, staffId, AssignmentType.MANUAL, adminId);
+    return this.assignComplaint(
+      complaintId,
+      staffId,
+      AssignmentType.MANUAL,
+      adminId,
+    );
   }
 }

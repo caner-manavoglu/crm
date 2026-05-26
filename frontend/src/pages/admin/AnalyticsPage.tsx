@@ -1,4 +1,6 @@
 import { useStaffPerformance, useResolutionTrend, useStatusBreakdown } from '@/hooks/queries/useAnalytics';
+import { useRatingStats } from '@/hooks/queries/useRatings';
+import { Star } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid,
@@ -30,6 +32,7 @@ export function AnalyticsPage() {
   const { data: staffPerf = [], isLoading } = useStaffPerformance();
   const { data: trendData = [] } = useResolutionTrend(30);
   const { data: statusData = [] } = useStatusBreakdown();
+  const { data: ratingStats } = useRatingStats();
 
   const perf = (staffPerf as StaffPerf[]).map((s) => ({
     name: `${s.name} ${s.surname}`,
@@ -56,6 +59,49 @@ export function AnalyticsPage() {
           </div>
         ))}
       </div>
+
+      {ratingStats && ratingStats.total > 0 && (
+        <div className="bg-surface-container border border-outline-variant rounded-xl p-md mb-md">
+          <h3 className="font-label-md text-label-md text-on-surface-variant uppercase mb-sm">Müşteri Memnuniyeti (CSAT)</h3>
+          <div className="flex flex-wrap items-center gap-md">
+            <div>
+              <div className="flex items-center gap-xs">
+                <span className="font-headline-xl text-headline-xl font-bold text-on-surface">
+                  {ratingStats.average.toFixed(2)}
+                </span>
+                <span className="font-body-sm text-body-sm text-on-surface-variant">/ 5</span>
+              </div>
+              <div className="mt-xs flex items-center gap-[2px]">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={16}
+                    className={i < Math.round(ratingStats.average) ? 'fill-tertiary text-tertiary' : 'text-on-surface-variant/40'}
+                  />
+                ))}
+              </div>
+              <p className="mt-xs font-label-md text-label-md text-on-surface-variant">
+                {ratingStats.total} değerlendirme
+              </p>
+            </div>
+            <div className="flex-1 min-w-[16rem] space-y-xs">
+              {[5, 4, 3, 2, 1].map((s) => {
+                const count = ratingStats.distribution[String(s)] ?? 0;
+                const pct = ratingStats.total > 0 ? (count / ratingStats.total) * 100 : 0;
+                return (
+                  <div key={s} className="flex items-center gap-sm">
+                    <span className="w-6 font-label-md text-label-md text-on-surface-variant">{s}★</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-low">
+                      <div className="h-full bg-tertiary" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-8 text-right font-label-md text-label-md text-on-surface-variant">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-surface-container border border-outline-variant rounded-xl p-md mb-md">
         <h3 className="font-label-md text-label-md text-on-surface-variant uppercase mb-md">Personel İş Yükü</h3>

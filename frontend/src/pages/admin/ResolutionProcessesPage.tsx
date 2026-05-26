@@ -8,6 +8,7 @@ import {
 import { useCategories } from '@/hooks/queries/useCategories';
 import { useCities } from '@/hooks/queries/useCities';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Category, City } from '@/types/user.types';
 import type { ResolutionProcess, ResolutionStepInput } from '@/types/resolution.types';
 
@@ -33,6 +34,7 @@ const emptyForm: FormState = {
 
 export function ResolutionProcessesPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [page, setPage] = useState(1);
   const { data: processes = [], isLoading } = useResolutionProcesses(
     categoryFilter ? { categoryId: categoryFilter } : undefined,
   );
@@ -50,6 +52,10 @@ export function ResolutionProcessesPage() {
   const list = processes as ResolutionProcess[];
   const cats = categories as Category[];
   const cityList = cities as City[];
+  const PAGE_SIZE = 6;
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedList = list.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const isEdit = !!form.id;
   const saving = createProcess.isPending || updateProcess.isPending;
 
@@ -148,7 +154,14 @@ export function ResolutionProcessesPage() {
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{list.length} süreç</p>
         </div>
         <div className="flex items-center gap-sm">
-          <select className={`${selectClass} max-w-[220px]`} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <select
+            className={`${selectClass} max-w-[220px]`}
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+          >
             <option value="">Tüm Kategoriler</option>
             {cats.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -176,7 +189,7 @@ export function ResolutionProcessesPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-sm">
-          {list.map((p) => (
+          {pagedList.map((p) => (
             <div key={p.id} className="bg-surface-container border border-outline-variant rounded-xl p-md">
               <div className="flex items-start justify-between gap-md">
                 <div className="min-w-0 flex-1">
@@ -234,6 +247,17 @@ export function ResolutionProcessesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && list.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={list.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedList.length}
+        />
       )}
 
       {showForm && (

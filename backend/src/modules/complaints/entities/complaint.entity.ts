@@ -21,16 +21,30 @@ export class Complaint {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'tracking_code', unique: true, length: 12, nullable: true })
+  trackingCode: string;
+
   @Column()
   title: string;
 
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ type: 'enum', enum: ComplaintStatus, default: ComplaintStatus.PENDING })
+  @Column({ type: 'text', default: '' })
+  address: string;
+
+  @Column({
+    type: 'enum',
+    enum: ComplaintStatus,
+    default: ComplaintStatus.PENDING,
+  })
   status: ComplaintStatus;
 
-  @Column({ type: 'enum', enum: ComplaintPriority, default: ComplaintPriority.MEDIUM })
+  @Column({
+    type: 'enum',
+    enum: ComplaintPriority,
+    default: ComplaintPriority.MEDIUM,
+  })
   priority: ComplaintPriority;
 
   @ManyToOne(() => User, { eager: false, onDelete: 'CASCADE' })
@@ -40,7 +54,11 @@ export class Complaint {
   @Column({ name: 'customer_id' })
   customerId: string;
 
-  @ManyToOne(() => Category, { eager: true, onDelete: 'SET NULL', nullable: true })
+  @ManyToOne(() => Category, {
+    eager: true,
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'category_id' })
   category: Category;
 

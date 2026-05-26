@@ -60,3 +60,29 @@ export function useUpdateComplaintStatus() {
     },
   });
 }
+
+export function useUpdateComplaint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { title?: string; content?: string; priority?: string; categoryId?: string; cityId?: string };
+    }) => complaintsApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: complaintKeys.all });
+    },
+  });
+}
+
+export function useDeleteComplaint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => complaintsApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: complaintKeys.all });
+    },
+  });
+}

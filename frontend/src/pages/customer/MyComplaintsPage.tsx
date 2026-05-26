@@ -5,6 +5,7 @@ import { useMyComplaints } from '@/hooks/queries/useComplaints';
 import { ROUTES } from '@/router/routes';
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Complaint, ComplaintStatus } from '@/types/complaint.types';
 
 const STATUS_TABS: Array<{ value: ComplaintStatus | 'all'; label: string }> = [
@@ -20,6 +21,8 @@ export function MyComplaintsPage() {
   const { data, isLoading } = useMyComplaints();
   const [activeStatus, setActiveStatus] = useState<ComplaintStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 9;
 
   const complaints = useMemo(() => {
     if (Array.isArray(data)) return data as Complaint[];
@@ -39,6 +42,13 @@ export function MyComplaintsPage() {
       || complaint.category?.name.toLowerCase().includes(query)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredComplaints.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedComplaints = filteredComplaints.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   if (isLoading) {
     return (
@@ -72,7 +82,10 @@ export function MyComplaintsPage() {
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setActiveStatus(tab.value)}
+                onClick={() => {
+                  setActiveStatus(tab.value);
+                  setPage(1);
+                }}
                 className={`rounded-full border px-sm py-[6px] font-label-md text-label-md transition-colors ${
                   activeStatus === tab.value
                     ? 'border-primary bg-primary-container text-on-primary-container'
@@ -96,7 +109,10 @@ export function MyComplaintsPage() {
               <Search size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
                 placeholder="Başlık veya kategori ara..."
                 className="h-10 w-full rounded-lg border border-outline-variant bg-surface-dim pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
               />
@@ -119,7 +135,7 @@ export function MyComplaintsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-md lg:grid-cols-2 xl:grid-cols-3">
-          {filteredComplaints.map((complaint) => (
+          {pagedComplaints.map((complaint) => (
             <Link
               key={complaint.id}
               to={ROUTES.CUSTOMER.COMPLAINT_DETAIL(complaint.id)}
@@ -149,6 +165,17 @@ export function MyComplaintsPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {!isLoading && filteredComplaints.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={filteredComplaints.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedComplaints.length}
+        />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ export interface Complaint {
   id: string;
   title: string;
   content: string;
+  address: string;
   status: ComplaintStatus;
   priority: ComplaintPriority;
   customerId: string;
@@ -12,7 +13,7 @@ export interface Complaint {
   cityId: string;
   category?: { id: string; name: string; departmentId: string; department: { id: string; name: string } };
   city?: { id: string; name: string };
-  customer?: { id: string; name: string; surname: string; email: string };
+  customer?: { id: string; name: string; surname: string; email: string; phone?: string };
   createdAt: string;
   updatedAt: string;
 }

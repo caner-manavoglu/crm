@@ -33,7 +33,11 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CUSTOMER })
   role: UserRole;
 
-  @ManyToOne(() => Department, { nullable: true, eager: false, onDelete: 'SET NULL' })
+  @ManyToOne(() => Department, {
+    nullable: true,
+    eager: false,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'department_id' })
   department: Department;
 

@@ -73,7 +73,12 @@ export class ResolutionProcessesController {
     @Body() dto: CompleteStepDto,
     @CurrentUser() user: User,
   ) {
-    return this.service.completeStep(complaintId, stepId, dto.isCompleted, user.id);
+    return this.service.completeStep(
+      complaintId,
+      stepId,
+      dto.isCompleted,
+      user.id,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.STAFF)

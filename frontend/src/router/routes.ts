@@ -2,6 +2,7 @@ export const ROUTES = {
   LANDING: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  TRACK: '/track',
 
   CUSTOMER: {
     HOME: '/customer',

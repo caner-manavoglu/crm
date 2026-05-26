@@ -18,7 +18,7 @@ const priorityConfig: Record<ComplaintPriority, { label: string; className: stri
 export function PriorityBadge({ priority }: { priority: ComplaintPriority }) {
   const config = priorityConfig[priority];
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${config.className}`}>
+    <span className={`inline-flex items-center rounded-lg border px-2 py-[3px] text-xs font-medium ${config.className}`}>
       {config.label}
     </span>
   );

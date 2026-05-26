@@ -33,3 +33,7 @@ Thumbs.db
 
 # Test / coverage
 coverage/
+
+# Uploaded files
+backend/uploads/
+**/uploads/

@@ -16,29 +16,40 @@ import { CreateResolutionProcessDto } from './dto/create-resolution-process.dto'
 import { UpdateResolutionProcessDto } from './dto/update-resolution-process.dto';
 import { CreateComplaintProcessDto } from './dto/create-complaint-process.dto';
 import { ResolutionStepInput } from './dto/resolution-step.input';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class ResolutionProcessesService {
   constructor(
-    @InjectRepository(ResolutionProcess) private processRepo: Repository<ResolutionProcess>,
-    @InjectRepository(ResolutionProcessStep) private stepRepo: Repository<ResolutionProcessStep>,
-    @InjectRepository(ComplaintResolutionStep) private complaintStepRepo: Repository<ComplaintResolutionStep>,
+    @InjectRepository(ResolutionProcess)
+    private processRepo: Repository<ResolutionProcess>,
+    @InjectRepository(ResolutionProcessStep)
+    private stepRepo: Repository<ResolutionProcessStep>,
+    @InjectRepository(ComplaintResolutionStep)
+    private complaintStepRepo: Repository<ComplaintResolutionStep>,
     @InjectRepository(City) private cityRepo: Repository<City>,
     @InjectRepository(Category) private categoryRepo: Repository<Category>,
     @InjectRepository(Complaint) private complaintRepo: Repository<Complaint>,
+    private notifications: NotificationsGateway,
   ) {}
 
   // ---- Süreç şablonu CRUD ----
 
   async create(dto: CreateResolutionProcessDto): Promise<ResolutionProcess> {
-    const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+    const category = await this.categoryRepo.findOne({
+      where: { id: dto.categoryId },
+    });
     if (!category) throw new NotFoundException('Kategori bulunamadı.');
 
     if (!dto.appliesToAllCities && !dto.cityIds?.length) {
       throw new BadRequestException('En az bir şehir seçmelisiniz.');
     }
 
-    await this.assertNoOverlap(dto.categoryId, dto.appliesToAllCities, dto.cityIds);
+    await this.assertNoOverlap(
+      dto.categoryId,
+      dto.appliesToAllCities,
+      dto.cityIds,
+    );
 
     const cities = dto.appliesToAllCities
       ? []
@@ -86,19 +97,24 @@ export class ResolutionProcessesService {
     return process;
   }
 
-  async update(id: string, dto: UpdateResolutionProcessDto): Promise<ResolutionProcess> {
+  async update(
+    id: string,
+    dto: UpdateResolutionProcessDto,
+  ): Promise<ResolutionProcess> {
     const process = await this.findOne(id);
 
     if (dto.name !== undefined) process.name = dto.name;
     if (dto.isActive !== undefined) process.isActive = dto.isActive;
 
-    const appliesToAllCities = dto.appliesToAllCities ?? process.appliesToAllCities;
+    const appliesToAllCities =
+      dto.appliesToAllCities ?? process.appliesToAllCities;
     process.appliesToAllCities = appliesToAllCities;
 
     if (appliesToAllCities) {
       process.cities = [];
     } else if (dto.cityIds) {
-      if (!dto.cityIds.length) throw new BadRequestException('En az bir şehir seçmelisiniz.');
+      if (!dto.cityIds.length)
+        throw new BadRequestException('En az bir şehir seçmelisiniz.');
       process.cities = await this.cityRepo.findBy({ id: In(dto.cityIds) });
     }
 
@@ -125,11 +141,17 @@ export class ResolutionProcessesService {
 
   // Belirli kategori+şehir için geçerli süreci bulur. Şehir-özel süreç,
   // tüm-şehirler sürecine göre önceliklidir.
-  async findApplicable(categoryId: string, cityId: string): Promise<ResolutionProcess | null> {
+  async findApplicable(
+    categoryId: string,
+    cityId: string,
+  ): Promise<ResolutionProcess | null> {
     const citySpecific = await this.processRepo
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.steps', 'step')
-      .where('p.categoryId = :categoryId AND p.isActive = true AND p.appliesToAllCities = false', { categoryId })
+      .where(
+        'p.categoryId = :categoryId AND p.isActive = true AND p.appliesToAllCities = false',
+        { categoryId },
+      )
       .andWhere(
         'EXISTS (SELECT 1 FROM resolution_process_cities rpc WHERE rpc.process_id = p.id AND rpc.city_id = :cityId)',
         { cityId },
@@ -149,8 +171,12 @@ export class ResolutionProcessesService {
   // ---- Talep adımları ----
 
   // Talebe ait adımları döndürür; henüz yoksa ve uygun süreç varsa örnekler.
-  async getOrInitComplaintSteps(complaintId: string): Promise<ComplaintResolutionStep[]> {
-    const complaint = await this.complaintRepo.findOne({ where: { id: complaintId } });
+  async getOrInitComplaintSteps(
+    complaintId: string,
+  ): Promise<ComplaintResolutionStep[]> {
+    const complaint = await this.complaintRepo.findOne({
+      where: { id: complaintId },
+    });
     if (!complaint) throw new NotFoundException('Şikayet bulunamadı.');
 
     let steps = await this.getComplaintSteps(complaintId);
@@ -164,10 +190,15 @@ export class ResolutionProcessesService {
   // Talep oluşturulurken otomatik çağrılır (varsa uygun süreci uygular).
   async instantiateForComplaint(complaint: Complaint): Promise<void> {
     if (!complaint.categoryId || !complaint.cityId) return;
-    const existing = await this.complaintStepRepo.count({ where: { complaintId: complaint.id } });
+    const existing = await this.complaintStepRepo.count({
+      where: { complaintId: complaint.id },
+    });
     if (existing > 0) return;
 
-    const process = await this.findApplicable(complaint.categoryId, complaint.cityId);
+    const process = await this.findApplicable(
+      complaint.categoryId,
+      complaint.cityId,
+    );
     if (!process) return;
     await this.instantiate(complaint.id, process);
   }
@@ -178,23 +209,33 @@ export class ResolutionProcessesService {
     isCompleted: boolean,
     userId: string,
   ): Promise<ComplaintResolutionStep[]> {
-    const step = await this.complaintStepRepo.findOne({ where: { id: stepId, complaintId } });
+    const step = await this.complaintStepRepo.findOne({
+      where: { id: stepId, complaintId },
+    });
     if (!step) throw new NotFoundException('Adım bulunamadı.');
 
     const steps = await this.getComplaintSteps(complaintId);
 
     if (isCompleted) {
-      const prevIncomplete = steps.some((s) => s.order < step.order && !s.isCompleted);
+      const prevIncomplete = steps.some(
+        (s) => s.order < step.order && !s.isCompleted,
+      );
       if (prevIncomplete) {
-        throw new BadRequestException('Önceki adımları tamamlamadan bu adımı tamamlayamazsınız.');
+        throw new BadRequestException(
+          'Önceki adımları tamamlamadan bu adımı tamamlayamazsınız.',
+        );
       }
       step.isCompleted = true;
       step.completedAt = new Date();
       step.completedById = userId;
     } else {
-      const laterCompleted = steps.some((s) => s.order > step.order && s.isCompleted);
+      const laterCompleted = steps.some(
+        (s) => s.order > step.order && s.isCompleted,
+      );
       if (laterCompleted) {
-        throw new BadRequestException('Sonraki adımlar tamamlanmışken bu adımı geri alamazsınız.');
+        throw new BadRequestException(
+          'Sonraki adımlar tamamlanmışken bu adımı geri alamazsınız.',
+        );
       }
       step.isCompleted = false;
       step.completedAt = null;
@@ -202,7 +243,25 @@ export class ResolutionProcessesService {
     }
 
     await this.complaintStepRepo.save(step);
-    return this.getComplaintSteps(complaintId);
+    const updatedSteps = await this.getComplaintSteps(complaintId);
+
+    // Public takip sayfası için anlık güncelleme.
+    const complaint = await this.complaintRepo.findOne({
+      where: { id: complaintId },
+      select: { trackingCode: true },
+    });
+    if (complaint?.trackingCode) {
+      this.notifications.notifyTrack(complaint.trackingCode, 'track:updated', {
+        type: 'step',
+        stepId: step.id,
+        order: step.order,
+        title: step.title,
+        isCompleted: step.isCompleted,
+        at: new Date().toISOString(),
+      });
+    }
+
+    return updatedSteps;
   }
 
   // Talep detayından anlık süreç tanımlama: yalnızca bu talebin kategorisi ve
@@ -211,10 +270,14 @@ export class ResolutionProcessesService {
     complaintId: string,
     dto: CreateComplaintProcessDto,
   ): Promise<ComplaintResolutionStep[]> {
-    const complaint = await this.complaintRepo.findOne({ where: { id: complaintId } });
+    const complaint = await this.complaintRepo.findOne({
+      where: { id: complaintId },
+    });
     if (!complaint) throw new NotFoundException('Şikayet bulunamadı.');
     if (!complaint.categoryId || !complaint.cityId) {
-      throw new BadRequestException('Şikayetin kategori veya şehir bilgisi eksik.');
+      throw new BadRequestException(
+        'Şikayetin kategori veya şehir bilgisi eksik.',
+      );
     }
 
     const created = await this.create({
@@ -232,11 +295,19 @@ export class ResolutionProcessesService {
 
   // ---- yardımcılar ----
 
-  private getComplaintSteps(complaintId: string): Promise<ComplaintResolutionStep[]> {
-    return this.complaintStepRepo.find({ where: { complaintId }, order: { order: 'ASC' } });
+  private getComplaintSteps(
+    complaintId: string,
+  ): Promise<ComplaintResolutionStep[]> {
+    return this.complaintStepRepo.find({
+      where: { complaintId },
+      order: { order: 'ASC' },
+    });
   }
 
-  private async instantiate(complaintId: string, process: ResolutionProcess): Promise<void> {
+  private async instantiate(
+    complaintId: string,
+    process: ResolutionProcess,
+  ): Promise<void> {
     const ordered = [...process.steps].sort((a, b) => a.order - b.order);
     const rows = ordered.map((s) =>
       this.complaintStepRepo.create({
@@ -271,7 +342,9 @@ export class ResolutionProcessesService {
         where: { categoryId, appliesToAllCities: true, isActive: true },
       });
       if (existing && existing.id !== excludeId) {
-        throw new ConflictException('Bu kategori için zaten tüm şehirleri kapsayan bir süreç var.');
+        throw new ConflictException(
+          'Bu kategori için zaten tüm şehirleri kapsayan bir süreç var.',
+        );
       }
       return;
     }

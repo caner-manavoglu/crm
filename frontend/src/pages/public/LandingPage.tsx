@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Headset, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Headset, Search, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 
 const cardClass = 'group relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container p-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]';
@@ -26,7 +26,7 @@ export function LandingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-md md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-md md:grid-cols-3">
           <Link to={ROUTES.LOGIN} className={cardClass}>
             <div className="mb-md flex items-center justify-between">
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary">
@@ -58,6 +58,23 @@ export function LandingPage() {
             <h2 className="font-headline-md text-headline-md text-on-background">Talep Arayüzü</h2>
             <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">
               Giriş yapmadan şikayet veya talep oluşturma ekranı.
+            </p>
+          </Link>
+
+          <Link to={ROUTES.TRACK} className={cardClass}>
+            <div className="mb-md flex items-center justify-between">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-tertiary/20 text-tertiary">
+                <Search size={24} strokeWidth={2.1} />
+              </span>
+              <ArrowUpRight
+                size={22}
+                strokeWidth={2.1}
+                className="text-on-surface-variant transition-colors group-hover:text-tertiary"
+              />
+            </div>
+            <h2 className="font-headline-md text-headline-md text-on-background">Talep Sorgu</h2>
+            <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">
+              Takip kodunuz ile talebinizi ve çözüm sürecini anlık takip edin.
             </p>
           </Link>
         </div>

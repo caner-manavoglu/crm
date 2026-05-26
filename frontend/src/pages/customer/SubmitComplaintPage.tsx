@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,10 +7,13 @@ import {
   ArrowLeft,
   BadgeCheck,
   CheckCircle2,
+  Copy,
   FileText,
   Info,
   Layers,
   Loader2,
+  PlusCircle,
+  Search,
   Send,
   SlidersHorizontal,
   UserRound,
@@ -21,7 +24,6 @@ import { useAvailableStaff } from '@/hooks/queries/useStaffAvailability';
 import { useCreateComplaint } from '@/hooks/queries/useComplaints';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { ROUTES } from '@/router/routes';
-import { useAuthStore } from '@/stores/auth.store';
 
 const schema = z.object({
   customerName: z.string().min(2, 'Ad en az 2 karakter olmalı'),
@@ -30,6 +32,7 @@ const schema = z.object({
   customerPhone: z.string().optional(),
   title: z.string().min(5, 'En az 5 karakter'),
   content: z.string().min(10, 'En az 10 karakter'),
+  address: z.string().min(10, 'En az 10 karakter'),
   categoryId: z.string().uuid('Kategori seçin'),
   cityId: z.string().uuid('Şehir seçin'),
   priority: z.enum(['low', 'medium', 'high']).optional(),
@@ -63,20 +66,19 @@ const inputClass = 'w-full rounded-lg border border-outline-variant bg-surface-d
 const labelClass = 'font-label-md text-label-md text-on-surface-variant uppercase';
 
 export function SubmitComplaintPage() {
-  const navigate = useNavigate();
-  const authUser = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [success, setSuccess] = useState('');
+  const [trackingCode, setTrackingCode] = useState('');
+  const [createdTitle, setCreatedTitle] = useState('');
+  const [copied, setCopied] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const createComplaint = useCreateComplaint();
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      customerName: authUser?.name ?? '',
-      customerSurname: authUser?.surname ?? '',
-      customerEmail: authUser?.email ?? '',
-      customerPhone: authUser?.phone ?? '',
+      customerName: '',
+      customerSurname: '',
+      customerEmail: '',
+      customerPhone: '',
       autoAssign: true,
       priority: 'medium',
     },
@@ -97,19 +99,11 @@ export function SubmitComplaintPage() {
 
   const onSubmit = async (formData: FormData) => {
     setSubmitError('');
-    setSuccess('');
 
     try {
       const result = await createComplaint.mutateAsync(formData);
-      const ticketNo = result.id.slice(0, 8).toUpperCase();
-
-      if (isAuthenticated && authUser?.role === 'customer') {
-        setSuccess(`Şikayet başarıyla oluşturuldu. (#${ticketNo})`);
-        setTimeout(() => navigate(ROUTES.CUSTOMER.COMPLAINT_DETAIL(result.id)), 1200);
-        return;
-      }
-
-      setSuccess(`Talebiniz alındı. Takip numaranız: #${ticketNo}`);
+      setTrackingCode(result.trackingCode ?? '');
+      setCreatedTitle(formData.title);
       reset({
         customerName: formData.customerName,
         customerSurname: formData.customerSurname,
@@ -126,6 +120,22 @@ export function SubmitComplaintPage() {
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'Talep oluşturulamadı.'));
     }
+  };
+
+  const handleCopy = async () => {
+    if (!trackingCode) return;
+    try {
+      await navigator.clipboard.writeText(trackingCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleNewComplaint = () => {
+    setTrackingCode('');
+    setCreatedTitle('');
   };
 
   return (
@@ -151,19 +161,64 @@ export function SubmitComplaintPage() {
           </p>
         </div>
 
-        {success && (
-          <div className="mb-md flex items-center gap-sm rounded-xl border border-primary/30 bg-primary/10 px-sm py-sm text-primary">
-            <CheckCircle2 size={18} />
-            <p className="font-body-sm text-body-sm">{success}</p>
+        {trackingCode && (
+          <div className="mb-md rounded-2xl border border-primary/40 bg-primary/10 p-lg">
+            <div className="flex flex-col items-center text-center">
+              <span className="mb-sm inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <CheckCircle2 size={32} />
+              </span>
+              <h3 className="font-headline-lg text-headline-lg text-on-surface">Talebiniz Alındı</h3>
+              <p className="mt-xs max-w-xl font-body-md text-body-md text-on-surface-variant">
+                {createdTitle ? `"${createdTitle}" başlıklı talebiniz` : 'Talebiniz'} sisteme kaydedildi.
+                Aşağıdaki takip kodu ile durumunu ve çözüm sürecini istediğiniz zaman sorgulayabilirsiniz.
+              </p>
+
+              <div className="mt-md flex items-center gap-sm rounded-xl border border-outline-variant bg-surface-container px-md py-sm">
+                <p className="font-label-md text-label-md uppercase text-on-surface-variant">Takip Kodu</p>
+                <p className="font-headline-md text-headline-md font-bold tracking-wider text-primary">{trackingCode}</p>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-xs rounded-lg border border-outline-variant px-sm py-xs font-label-md text-label-md text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+                  title="Kopyala"
+                >
+                  <Copy size={14} />
+                  {copied ? 'Kopyalandı' : 'Kopyala'}
+                </button>
+              </div>
+
+              <p className="mt-sm font-label-md text-label-md text-on-surface-variant">
+                Bu kodu güvenli bir yerde saklayın. Talep sorgu ekranında girerek anlık durum güncellemelerini takip edebilirsiniz.
+              </p>
+
+              <div className="mt-md flex flex-col gap-sm sm:flex-row">
+                <Link
+                  to={`${ROUTES.TRACK}?code=${encodeURIComponent(trackingCode)}`}
+                  className="inline-flex items-center justify-center gap-xs rounded-lg bg-primary px-md py-sm font-body-md text-body-md font-semibold text-on-primary transition-opacity hover:opacity-90"
+                >
+                  <Search size={16} />
+                  Talebimi Sorgula
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleNewComplaint}
+                  className="inline-flex items-center justify-center gap-xs rounded-lg border border-outline-variant px-md py-sm font-body-md text-body-md text-on-surface transition-colors hover:border-primary"
+                >
+                  <PlusCircle size={16} />
+                  Yeni Talep Oluştur
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {submitError && (
+        {!trackingCode && submitError && (
           <div className="mb-md rounded-xl border border-error/30 bg-error-container/30 px-sm py-sm text-error">
             <p className="font-body-sm text-body-sm">{submitError}</p>
           </div>
         )}
 
+        {!trackingCode && (
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-md lg:grid-cols-3">
           <section className="space-y-md lg:col-span-2">
             <div className="rounded-xl border border-outline-variant bg-surface-container p-md transition-colors hover:border-primary/40">
@@ -250,11 +305,21 @@ export function SubmitComplaintPage() {
                   <label className={labelClass}>Açıklama</label>
                   <textarea
                     {...register('content')}
-                    rows={6}
+                    rows={4}
                     className={`${inputClass} resize-y`}
                     placeholder="Şikayetinizi detaylı şekilde anlatın..."
                   />
                   {errors.content && <p className="font-label-md text-label-md text-error">{errors.content.message}</p>}
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className={labelClass}>Açık Adres</label>
+                  <textarea
+                    {...register('address')}
+                    rows={2}
+                    className={`${inputClass} resize-y`}
+                    placeholder="Mahalle, Sokak, No, Daire vb. detayları girin..."
+                  />
+                  {errors.address && <p className="font-label-md text-label-md text-error">{errors.address.message}</p>}
                 </div>
               </div>
             </div>
@@ -336,6 +401,16 @@ export function SubmitComplaintPage() {
             </div>
           </section>
         </form>
+        )}
+
+        {!trackingCode && (
+          <div className="mt-md flex items-center justify-center gap-xs font-body-sm text-body-sm text-on-surface-variant">
+            <span>Mevcut bir talebiniz mi var?</span>
+            <Link to={ROUTES.TRACK} className="inline-flex items-center gap-xs font-semibold text-primary hover:underline">
+              <Search size={14} /> Talep Sorgu
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

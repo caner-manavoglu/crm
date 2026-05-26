@@ -11,6 +11,7 @@ import { Complaint } from './entities/complaint.entity';
 import { ComplaintHistory } from './entities/complaint-history.entity';
 import { CreateComplaintDto } from './dto/create-complaint.dto';
 import { UpdateComplaintStatusDto } from './dto/update-complaint-status.dto';
+import { UpdateComplaintDto } from './dto/update-complaint.dto';
 import { ComplaintQueryDto } from './dto/complaint-query.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -19,6 +20,7 @@ import { User } from '../users/entities/user.entity';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { ResolutionProcessesService } from '../resolution-processes/resolution-processes.service';
+import { RatingsService } from '../ratings/ratings.service';
 
 type QueryValue = string | number | boolean | Date | null;
 
@@ -44,6 +46,7 @@ export class ComplaintsService {
     private assignmentsService: AssignmentsService,
     private notifications: NotificationsGateway,
     private resolutionProcesses: ResolutionProcessesService,
+    private ratingsService: RatingsService,
   ) {}
 
   async create(
@@ -55,10 +58,12 @@ export class ComplaintsService {
     const complaint = this.complaintRepo.create({
       title: dto.title,
       content: dto.content,
+      address: dto.address,
       categoryId: dto.categoryId,
       cityId: dto.cityId,
       priority: dto.priority,
       customerId: resolvedCustomerId,
+      trackingCode: await this.generateUniqueTrackingCode(),
     });
     const saved = await this.complaintRepo.save(complaint);
 
@@ -155,7 +160,67 @@ export class ComplaintsService {
       complaintId: id,
     });
 
+    // Takip kodu odasına anlık güncelleme (public tracking page için).
+    this.notifications.notifyTrack(complaint.trackingCode, 'track:updated', {
+      type: 'status',
+      oldStatus,
+      newStatus: dto.status,
+      notes: dto.notes,
+      at: new Date().toISOString(),
+    });
+
     return this.findOne(id);
+  }
+
+  // Admin tarafından alan güncellemesi. Şehir değişirse mevcut atama serbest bırakılır
+  // ve geçmişe not düşülür (yeniden atama akışı için talep havuza döner).
+  async update(
+    id: string,
+    dto: UpdateComplaintDto,
+    user: User,
+  ): Promise<Complaint> {
+    const complaint = await this.findOne(id);
+
+    const patch: Partial<Complaint> = {};
+    if (dto.title !== undefined) patch.title = dto.title;
+    if (dto.content !== undefined) patch.content = dto.content;
+    if (dto.priority !== undefined) patch.priority = dto.priority;
+    if (dto.categoryId !== undefined) patch.categoryId = dto.categoryId;
+
+    const cityChanged =
+      dto.cityId !== undefined && dto.cityId !== complaint.cityId;
+    if (dto.cityId !== undefined) patch.cityId = dto.cityId;
+
+    if (Object.keys(patch).length === 0) return complaint;
+
+    await this.complaintRepo.update(id, patch);
+
+    if (cityChanged) {
+      await this.assignmentsService.releaseAssignment(id);
+      await this.complaintRepo.update(id, { status: ComplaintStatus.PENDING });
+      await this.historyRepo.save(
+        this.historyRepo.create({
+          complaintId: id,
+          userId: user.id,
+          oldStatus: complaint.status,
+          newStatus: ComplaintStatus.PENDING,
+          notes: 'Şikayet farklı şehre yönlendirildi, havuza alındı.',
+        }),
+      );
+      this.notifications.notifyTrack(complaint.trackingCode, 'track:updated', {
+        type: 'transfer',
+        notes: 'Şikayet farklı şehre yönlendirildi.',
+        at: new Date().toISOString(),
+      });
+    }
+
+    return this.findOne(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    const complaint = await this.findOne(id);
+    await this.assignmentsService.releaseAssignment(id);
+    await this.complaintRepo.delete(complaint.id);
   }
 
   getHistory(id: string) {
@@ -164,6 +229,78 @@ export class ComplaintsService {
       relations: ['user'],
       order: { createdAt: 'ASC' },
     });
+  }
+
+  // Takip kodu ile public sorgu — kişisel veri sızdırmamak için sadece gerekli alanlar.
+  async findByTrackingCode(code: string) {
+    const complaint = await this.complaintRepo.findOne({
+      where: { trackingCode: code.toUpperCase() },
+      relations: ['category', 'category.department', 'city'],
+    });
+    if (!complaint) throw new NotFoundException('Talep bulunamadı.');
+
+    const steps = await this.resolutionProcesses.getOrInitComplaintSteps(
+      complaint.id,
+    );
+    const history = await this.historyRepo.find({
+      where: { complaintId: complaint.id },
+      order: { createdAt: 'ASC' },
+    });
+    const rating = await this.ratingsService.findByComplaint(complaint.id);
+
+    return {
+      trackingCode: complaint.trackingCode,
+      title: complaint.title,
+      content: complaint.content,
+      address: complaint.address,
+      status: complaint.status,
+      priority: complaint.priority,
+      createdAt: complaint.createdAt,
+      updatedAt: complaint.updatedAt,
+      category: complaint.category
+        ? { id: complaint.category.id, name: complaint.category.name }
+        : null,
+      department: complaint.category?.department
+        ? {
+            id: complaint.category.department.id,
+            name: complaint.category.department.name,
+          }
+        : null,
+      city: complaint.city
+        ? { id: complaint.city.id, name: complaint.city.name }
+        : null,
+      steps,
+      history: history.map((h) => ({
+        oldStatus: h.oldStatus,
+        newStatus: h.newStatus,
+        notes: h.notes,
+        createdAt: h.createdAt,
+      })),
+      rating: rating
+        ? {
+            score: rating.score,
+            comment: rating.comment,
+            createdAt: rating.createdAt,
+          }
+        : null,
+    };
+  }
+
+  // 6 karakter, kullanıcı dostu (karışan karakterleri çıkardık: 0/O, 1/I, L).
+  private async generateUniqueTrackingCode(): Promise<string> {
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    for (let attempt = 0; attempt < 6; attempt++) {
+      let code = 'CRM-';
+      for (let i = 0; i < 6; i++) {
+        code += alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+      const existing = await this.complaintRepo.findOne({
+        where: { trackingCode: code },
+        select: { id: true },
+      });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Takip kodu üretilemedi, tekrar deneyin.');
   }
 
   // Rol bazlı yetki + geçerli durum geçişi kontrolü.
@@ -242,13 +379,21 @@ export class ComplaintsService {
     if (fromDate) qb.andWhere('c.created_at >= :fromDate', { fromDate });
     if (toDate) qb.andWhere('c.created_at <= :toDate', { toDate });
 
+    if (query.q && query.q.trim()) {
+      const term = `%${query.q.trim().toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(c.title) LIKE :term OR LOWER(c.content) LIKE :term OR LOWER(c.tracking_code) LIKE :term OR LOWER(cat.name) LIKE :term)',
+        { term },
+      );
+    }
+
     if (query.departmentId) {
       qb.andWhere('cat.department_id = :departmentId', {
         departmentId: query.departmentId,
       });
     }
 
-    qb.orderBy('c.created_at', 'DESC')
+    qb.orderBy('c.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 

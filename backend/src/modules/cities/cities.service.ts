@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { City } from './entities/city.entity';
@@ -14,10 +18,12 @@ export class CitiesService {
     const code = dto.code.trim();
 
     const existingName = await this.cityRepo.findOne({ where: { name } });
-    if (existingName) throw new ConflictException('Bu şehir adı zaten kullanılıyor.');
+    if (existingName)
+      throw new ConflictException('Bu şehir adı zaten kullanılıyor.');
 
     const existingCode = await this.cityRepo.findOne({ where: { code } });
-    if (existingCode) throw new ConflictException('Bu şehir kodu zaten kullanılıyor.');
+    if (existingCode)
+      throw new ConflictException('Bu şehir kodu zaten kullanılıyor.');
 
     return this.cityRepo.save(
       this.cityRepo.create({
@@ -29,7 +35,10 @@ export class CitiesService {
   }
 
   findAll() {
-    return this.cityRepo.find({ where: { isActive: true }, order: { name: 'ASC' } });
+    return this.cityRepo.find({
+      where: { isActive: true },
+      order: { name: 'ASC' },
+    });
   }
 
   async findOne(id: string) {

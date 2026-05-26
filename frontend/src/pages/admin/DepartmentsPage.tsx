@@ -7,6 +7,7 @@ import {
   useUpdateDepartment,
 } from '@/hooks/queries/useDepartments';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Department } from '@/types/user.types';
 
 const inputClass = 'w-full bg-surface-dim border border-outline-variant rounded-lg px-sm py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors';
@@ -27,8 +28,14 @@ export function DepartmentsPage() {
   const [editError, setEditError] = useState('');
   const [departmentToDeactivate, setDepartmentToDeactivate] = useState<Department | null>(null);
   const [deleteError, setDeleteError] = useState('');
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 8;
 
   const list = departments as Department[];
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedList = list.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleCreate = () => {
     if (!name.trim()) {
@@ -120,7 +127,7 @@ export function DepartmentsPage() {
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-md">
         <h2 className="font-headline-lg text-headline-lg text-on-background font-bold">Departmanlar</h2>
-        <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{list.length} departman</p>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">{list.length} departman</p>
       </div>
 
       <div className="bg-surface-container border border-outline-variant rounded-xl p-md mb-md">
@@ -155,7 +162,7 @@ export function DepartmentsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-sm md:grid-cols-2">
-          {list.map((d) => (
+          {pagedList.map((d) => (
             <div key={d.id} className="bg-surface-container border border-outline-variant rounded-xl p-md flex items-start justify-between gap-sm">
               <div className="min-w-0">
                 <div className="flex items-center gap-xs">
@@ -185,6 +192,17 @@ export function DepartmentsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && list.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={list.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedList.length}
+        />
       )}
 
       {editing && (

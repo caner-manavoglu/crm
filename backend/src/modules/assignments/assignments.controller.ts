@@ -23,7 +23,11 @@ export class AssignmentsController {
   @Roles(UserRole.ADMIN)
   @Post('admin-assign')
   adminAssign(@Body() dto: CreateAssignmentDto, @CurrentUser() user: User) {
-    return this.assignmentsService.adminAssign(dto.complaintId, dto.staffId, user.id);
+    return this.assignmentsService.adminAssign(
+      dto.complaintId,
+      dto.staffId,
+      user.id,
+    );
   }
 
   @Roles(UserRole.STAFF, UserRole.ADMIN)

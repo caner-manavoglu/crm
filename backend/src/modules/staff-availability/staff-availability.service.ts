@@ -7,7 +7,8 @@ import { User } from '../users/entities/user.entity';
 @Injectable()
 export class StaffAvailabilityService {
   constructor(
-    @InjectRepository(StaffAvailability) private availRepo: Repository<StaffAvailability>,
+    @InjectRepository(StaffAvailability)
+    private availRepo: Repository<StaffAvailability>,
     @InjectRepository(User) private userRepo: Repository<User>,
   ) {}
 
@@ -17,16 +18,17 @@ export class StaffAvailabilityService {
       .innerJoinAndSelect('sa.staff', 'u')
       .where('u.department_id = :departmentId', { departmentId })
       .andWhere('u.city_id = :cityId', { cityId })
-      .andWhere('u.is_active = true')
+      .andWhere('u."isActive" = true')
       .andWhere('sa.is_available = true')
       .andWhere('sa.current_load < sa.max_capacity')
-      .orderBy('sa.current_load', 'ASC')
+      .orderBy('sa.currentLoad', 'ASC')
       .getMany();
   }
 
   async findByStaffId(staffId: string) {
     const avail = await this.availRepo.findOne({ where: { staffId } });
-    if (!avail) throw new NotFoundException('Personel müsaitlik kaydı bulunamadı.');
+    if (!avail)
+      throw new NotFoundException('Personel müsaitlik kaydı bulunamadı.');
     return avail;
   }
 
@@ -58,6 +60,9 @@ export class StaffAvailabilityService {
       .andWhere('a.is_active = true')
       .getRawOne();
 
-    await this.availRepo.update({ staffId }, { currentLoad: parseInt(count?.cnt || '0', 10) });
+    await this.availRepo.update(
+      { staffId },
+      { currentLoad: parseInt(count?.cnt || '0', 10) },
+    );
   }
 }

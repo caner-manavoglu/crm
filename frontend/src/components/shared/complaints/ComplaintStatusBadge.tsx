@@ -11,7 +11,7 @@ const statusConfig: Record<ComplaintStatus, { label: string; dot: string; bg: st
 export function ComplaintStatusBadge({ status }: { status: ComplaintStatus }) {
   const config = statusConfig[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${config.bg} ${config.text} ${config.border}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-[3px] text-xs font-medium ${config.bg} ${config.text} ${config.border}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
       {config.label}
     </span>

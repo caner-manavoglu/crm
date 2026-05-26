@@ -28,7 +28,12 @@ export class ComplaintHistory {
   @Column({ name: 'user_id', nullable: true })
   userId: string;
 
-  @Column({ type: 'enum', enum: ComplaintStatus, nullable: true, name: 'old_status' })
+  @Column({
+    type: 'enum',
+    enum: ComplaintStatus,
+    nullable: true,
+    name: 'old_status',
+  })
   oldStatus: ComplaintStatus;
 
   @Column({ type: 'enum', enum: ComplaintStatus, name: 'new_status' })

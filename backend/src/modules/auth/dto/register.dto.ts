@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MinLength,
+} from 'class-validator';
 
 // Public kayıt yalnızca müşteri hesabı oluşturur. Rol/departman gibi yetki
 // alanları kabul edilmez; personel/admin yalnızca admin korumalı POST /users ile açılır.

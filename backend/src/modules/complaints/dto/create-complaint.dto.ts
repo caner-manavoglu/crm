@@ -46,6 +46,11 @@ export class CreateComplaintDto {
   content: string;
 
   @ApiProperty()
+  @IsString()
+  @MinLength(10)
+  address: string;
+
+  @ApiProperty()
   @IsUUID()
   categoryId: string;
 

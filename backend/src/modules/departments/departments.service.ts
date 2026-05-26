@@ -7,14 +7,19 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @Injectable()
 export class DepartmentsService {
-  constructor(@InjectRepository(Department) private deptRepo: Repository<Department>) {}
+  constructor(
+    @InjectRepository(Department) private deptRepo: Repository<Department>,
+  ) {}
 
   create(dto: CreateDepartmentDto) {
     return this.deptRepo.save(this.deptRepo.create(dto));
   }
 
   findAll() {
-    return this.deptRepo.find({ where: { isActive: true }, order: { name: 'ASC' } });
+    return this.deptRepo.find({
+      where: { isActive: true },
+      order: { name: 'ASC' },
+    });
   }
 
   async findOne(id: string) {

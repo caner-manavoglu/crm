@@ -1,14 +1,23 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ROUTES } from '@/router/routes';
 import { useAllComplaints } from '@/hooks/queries/useComplaints';
 import { useAdminAssign } from '@/hooks/queries/useAssignments';
 import { useAvailableStaff } from '@/hooks/queries/useStaffAvailability';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Complaint } from '@/types/complaint.types';
 
 const selectClass = 'bg-surface-dim border border-outline-variant rounded-lg px-sm py-[10px] font-body-sm text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors';
 
 export function ComplaintPoolPage() {
-  const { data, isLoading } = useAllComplaints({ status: 'pending' });
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const { data, isLoading } = useAllComplaints({
+    status: 'pending',
+    page,
+    limit: PAGE_SIZE,
+  });
   const adminAssign = useAdminAssign();
   const [assignModal, setAssignModal] = useState<{ complaintId: string; departmentId?: string; cityId?: string } | null>(null);
   const [selectedStaff, setSelectedStaff] = useState('');
@@ -16,6 +25,8 @@ export function ComplaintPoolPage() {
   const { data: availableStaff = [] } = useAvailableStaff(assignModal?.departmentId, assignModal?.cityId);
 
   const complaints: Complaint[] = data?.data ?? [];
+  const totalPages = Math.max(1, data?.meta?.totalPages ?? 1);
+  const safePage = Math.min(page, totalPages);
 
   const handleAssign = () => {
     if (!assignModal || !selectedStaff) return;
@@ -50,7 +61,7 @@ export function ComplaintPoolPage() {
           {complaints.map((c) => (
             <div key={c.id} className="bg-surface-container border border-outline-variant rounded-xl p-md flex items-start justify-between gap-md">
               <div className="min-w-0 flex-1">
-                <p className="font-body-md text-body-md text-on-surface font-medium truncate">{c.title}</p>
+                <p className="font-body-md text-body-md text-on-surface font-medium">{c.title}</p>
                 <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
                   {c.category?.department?.name} → {c.category?.name}
                 </p>
@@ -63,6 +74,13 @@ export function ComplaintPoolPage() {
               </div>
               <div className="flex items-center gap-sm shrink-0">
                 <PriorityBadge priority={c.priority} />
+                <Link
+                  to={ROUTES.ADMIN.COMPLAINT_DETAIL(c.id)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-dim text-on-surface-variant hover:text-primary transition-colors"
+                  title="Detay"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>visibility</span>
+                </Link>
                 <button
                   onClick={() => setAssignModal({
                     complaintId: c.id,
@@ -78,6 +96,17 @@ export function ComplaintPoolPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={data?.meta?.total ?? 0}
+          pageSize={data?.meta?.limit ?? PAGE_SIZE}
+          currentItemCount={complaints.length}
+        />
       )}
 
       {assignModal && (

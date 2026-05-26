@@ -135,15 +135,8 @@ function NavGroup({ item }: { item: NavItem }) {
 
 export function Sidebar({ title, items }: SidebarProps) {
   const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.LOGIN);
-  };
-
-  const initials = user ? `${user.name[0]}${user.surname[0]}`.toUpperCase() : 'U';
   const quickActionTarget = user?.role === 'admin'
     ? ROUTES.ADMIN.COMPLAINTS
     : user?.role === 'staff'
@@ -183,46 +176,6 @@ export function Sidebar({ title, items }: SidebarProps) {
           )}
         </div>
       </nav>
-
-      <div className="border-t border-outline-variant p-sm">
-        <div className="flex items-center gap-sm px-sm py-xs mb-xs">
-          <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-bold text-xs border border-outline-variant shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            {user ? (
-              <>
-                <p className="font-body-sm text-body-sm text-on-surface font-medium truncate">
-                  {user.name} {user.surname}
-                </p>
-                <p className="font-label-md text-label-md text-on-surface-variant capitalize">{user.role}</p>
-              </>
-            ) : (
-              <>
-                <p className="font-body-sm text-body-sm text-on-surface font-medium truncate">Misafir Kullanıcı</p>
-                <p className="font-label-md text-label-md text-on-surface-variant">Public Portal</p>
-              </>
-            )}
-          </div>
-        </div>
-        {user ? (
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-sm rounded-xl px-sm py-xs font-body-sm text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error"
-          >
-            <LogOut size={18} strokeWidth={2.1} />
-            Çıkış Yap
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate(ROUTES.LOGIN)}
-            className="flex w-full items-center gap-sm rounded-xl px-sm py-xs font-body-sm text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-          >
-            <LogIn size={18} strokeWidth={2.1} />
-            Panel Girişi
-          </button>
-        )}
-      </div>
     </aside>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCities, useCreateCity, useUpdateCity, useDeleteCity } from '@/hooks/queries/useCities';
 import { ConfirmActionModal } from '@/components/shared/modals/ConfirmActionModal';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { City } from '@/types/user.types';
 
 const inputClass = 'w-full bg-surface-dim border border-outline-variant rounded-lg px-sm py-[10px] font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors';
@@ -23,11 +24,17 @@ export function CitiesPage() {
   const [editError, setEditError] = useState('');
   const [cityToDeactivate, setCityToDeactivate] = useState<City | null>(null);
   const [deleteError, setDeleteError] = useState('');
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 12;
 
   const list = (cities as City[]).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.code?.toLowerCase().includes(search.toLowerCase()),
   );
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedList = list.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleCreate = () => {
     if (!name.trim() || !code.trim()) {
@@ -128,7 +135,10 @@ export function CitiesPage() {
             className={`${inputClass} pl-9`}
             placeholder="Şehir ara..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -165,7 +175,7 @@ export function CitiesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-sm sm:grid-cols-3 lg:grid-cols-4">
-          {list.map((c) => (
+          {pagedList.map((c) => (
             <div key={c.id} className="bg-surface-container border border-outline-variant rounded-xl p-md">
               <div className="flex items-start justify-between gap-xs">
                 <div className="h-10 w-10 rounded-lg bg-primary-container/20 flex items-center justify-center shrink-0">
@@ -195,6 +205,17 @@ export function CitiesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && list.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={list.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedList.length}
+        />
       )}
 
       {editing && (

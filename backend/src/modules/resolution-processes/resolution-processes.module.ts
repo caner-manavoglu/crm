@@ -8,6 +8,7 @@ import { ComplaintResolutionStep } from './entities/complaint-resolution-step.en
 import { City } from '../cities/entities/city.entity';
 import { Category } from '../categories/entities/category.entity';
 import { Complaint } from '../complaints/entities/complaint.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Complaint } from '../complaints/entities/complaint.entity';
       Category,
       Complaint,
     ]),
+    NotificationsModule,
   ],
   controllers: [ResolutionProcessesController],
   providers: [ResolutionProcessesService],

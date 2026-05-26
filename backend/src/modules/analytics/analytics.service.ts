@@ -10,24 +10,46 @@ import { ComplaintStatus } from '../../common/enums/complaint-status.enum';
 export class AnalyticsService {
   constructor(
     @InjectRepository(Complaint) private complaintRepo: Repository<Complaint>,
-    @InjectRepository(Assignment) private assignmentRepo: Repository<Assignment>,
-    @InjectRepository(StaffAvailability) private availRepo: Repository<StaffAvailability>,
+    @InjectRepository(Assignment)
+    private assignmentRepo: Repository<Assignment>,
+    @InjectRepository(StaffAvailability)
+    private availRepo: Repository<StaffAvailability>,
   ) {}
 
   async getDashboardStats() {
-    const [total, pending, assigned, inProgress, resolved, closed] = await Promise.all([
-      this.complaintRepo.count(),
-      this.complaintRepo.count({ where: { status: ComplaintStatus.PENDING } }),
-      this.complaintRepo.count({ where: { status: ComplaintStatus.ASSIGNED } }),
-      this.complaintRepo.count({ where: { status: ComplaintStatus.IN_PROGRESS } }),
-      this.complaintRepo.count({ where: { status: ComplaintStatus.RESOLVED } }),
-      this.complaintRepo.count({ where: { status: ComplaintStatus.CLOSED } }),
-    ]);
+    const [total, pending, assigned, inProgress, resolved, closed] =
+      await Promise.all([
+        this.complaintRepo.count(),
+        this.complaintRepo.count({
+          where: { status: ComplaintStatus.PENDING },
+        }),
+        this.complaintRepo.count({
+          where: { status: ComplaintStatus.ASSIGNED },
+        }),
+        this.complaintRepo.count({
+          where: { status: ComplaintStatus.IN_PROGRESS },
+        }),
+        this.complaintRepo.count({
+          where: { status: ComplaintStatus.RESOLVED },
+        }),
+        this.complaintRepo.count({ where: { status: ComplaintStatus.CLOSED } }),
+      ]);
 
     const totalStaff = await this.availRepo.count();
-    const availableStaff = await this.availRepo.count({ where: { isAvailable: true } });
+    const availableStaff = await this.availRepo.count({
+      where: { isAvailable: true },
+    });
 
-    return { total, pending, assigned, inProgress, resolved, closed, totalStaff, availableStaff };
+    return {
+      total,
+      pending,
+      assigned,
+      inProgress,
+      resolved,
+      closed,
+      totalStaff,
+      availableStaff,
+    };
   }
 
   async getComplaintsByStatus() {
@@ -73,7 +95,9 @@ export class AnalyticsService {
       .addSelect('u.surname', 'surname')
       .addSelect('COUNT(a.id)', 'totalAssigned')
       .groupBy('u.id')
-      .orderBy('totalAssigned', 'DESC')
+      .addGroupBy('u.name')
+      .addGroupBy('u.surname')
+      .orderBy('"totalAssigned"', 'DESC')
       .getRawMany();
   }
 }

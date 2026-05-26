@@ -1,6 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsString, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { ResolutionStepInput } from './resolution-step.input';
 
 // Talep detayından anlık süreç tanımlama. Süreç, talebin kategorisi ve şehri

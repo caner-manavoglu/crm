@@ -16,6 +16,7 @@ import { useMyAvailability, useToggleAvailability } from '@/hooks/queries/useSta
 import { ComplaintStatusBadge } from '@/components/shared/complaints/ComplaintStatusBadge';
 import { PriorityBadge } from '@/components/shared/complaints/PriorityBadge';
 import { ROUTES } from '@/router/routes';
+import { PaginationControls } from '@/components/shared/PaginationControls';
 import type { Assignment } from '@/types/complaint.types';
 
 const STATUS_OPTIONS = [
@@ -34,6 +35,8 @@ export function StaffDashboardPage() {
   const toggleAvailability = useToggleAvailability();
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]['value']>('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const list = assignments as Assignment[];
 
@@ -52,6 +55,13 @@ export function StaffDashboardPage() {
       );
     });
   }, [list, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAssignments.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedAssignments = filteredAssignments.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   const stats = {
     total: list.length,
@@ -148,7 +158,10 @@ export function StaffDashboardPage() {
               <div className="relative">
                 <select
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]['value'])}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]['value']);
+                    setPage(1);
+                  }}
                   className="appearance-none rounded-lg border border-outline-variant bg-surface-dim px-sm py-[8px] pr-xl font-body-sm text-body-sm text-on-surface outline-none transition-colors focus:border-primary"
                 >
                   {STATUS_OPTIONS.map((option) => (
@@ -168,7 +181,10 @@ export function StaffDashboardPage() {
                 <Search size={16} className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" />
                 <input
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Görev veya müşteri ara..."
                   className="w-full rounded-lg border border-outline-variant bg-surface-dim py-[8px] pl-9 pr-sm font-body-sm text-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary"
                 />
@@ -199,7 +215,7 @@ export function StaffDashboardPage() {
                   </td>
                 </tr>
               ) : (
-                filteredAssignments.map((assignment) => {
+                pagedAssignments.map((assignment) => {
                   const complaint = assignment.complaint;
                   if (!complaint) return null;
                   const initials = `${complaint.customer?.name?.[0] ?? 'M'}${complaint.customer?.surname?.[0] ?? 'K'}`.toUpperCase();
@@ -236,7 +252,7 @@ export function StaffDashboardPage() {
 
         <div className="flex items-center justify-between border-t border-outline-variant bg-surface-container-low px-md py-sm">
           <span className="font-body-sm text-body-sm text-on-surface-variant">
-            Toplam {filteredAssignments.length} kayıttan ilk {Math.min(filteredAssignments.length, 20)} satır gösteriliyor.
+            Toplam {filteredAssignments.length} kayıt
           </span>
           <Link
             to={ROUTES.STAFF.COMPLAINTS}
@@ -246,6 +262,17 @@ export function StaffDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {filteredAssignments.length > 0 && (
+        <PaginationControls
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={filteredAssignments.length}
+          pageSize={PAGE_SIZE}
+          currentItemCount={pagedAssignments.length}
+        />
+      )}
     </div>
   );
 }

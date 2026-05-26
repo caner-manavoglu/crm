@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -6,17 +10,22 @@ import { User } from './entities/user.entity';
 import { StaffAvailability } from '../staff-availability/entities/staff-availability.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 import { UserRole } from '../../common/enums/user-role.enum';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
-    @InjectRepository(StaffAvailability) private availabilityRepo: Repository<StaffAvailability>,
+    @InjectRepository(StaffAvailability)
+    private availabilityRepo: Repository<StaffAvailability>,
   ) {}
 
   async create(dto: CreateUserDto) {
-    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
+    const existing = await this.userRepo.findOne({
+      where: { email: dto.email },
+    });
     if (existing) throw new ConflictException('Bu e-posta zaten kullanılıyor.');
 
     const user = this.userRepo.create(dto);
@@ -30,13 +39,56 @@ export class UsersService {
     return user;
   }
 
-  findAll(role?: UserRole) {
-    const where = role ? { role, isActive: true } : {};
-    return this.userRepo.find({
-      where,
-      relations: ['department', 'city'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(query: UserQueryDto): Promise<PaginatedResult<User>> {
+    const {
+      role,
+      cityId,
+      departmentId,
+      search,
+      page = 1,
+      limit = 20,
+    } = query;
+
+    const qb = this.userRepo
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.department', 'department')
+      .leftJoinAndSelect('u.city', 'city');
+
+    if (role) {
+      qb.andWhere('u.role = :role', { role });
+      qb.andWhere('u.isActive = true');
+    }
+
+    if (cityId) {
+      qb.andWhere('u.city_id = :cityId', { cityId });
+    }
+
+    if (departmentId) {
+      qb.andWhere('u.department_id = :departmentId', { departmentId });
+    }
+
+    const searchTerm = search?.trim().toLowerCase();
+    if (searchTerm) {
+      qb.andWhere(
+        `(LOWER(u.name) LIKE :term
+          OR LOWER(u.surname) LIKE :term
+          OR LOWER(u.email) LIKE :term
+          OR LOWER(department.name) LIKE :term
+          OR LOWER(city.name) LIKE :term)`,
+        { term: `%${searchTerm}%` },
+      );
+    }
+
+    qb.orderBy('u.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findOne(id: string) {
